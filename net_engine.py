@@ -47,44 +47,56 @@ class NetEngine:
             net_thread.start()
 
     def net_thread_go(self):
-        self.setup_socket()
-        if self.should_stop:
+        if not self.setup_socket():
             return
-        self.setup_addr_name()
-        if self.should_stop:
+        if not self.setup_addr_name():
             return
         self.wait_for_connections()
 
     def setup_socket(self):
+        self.game.add_message('Finding public UDP address...')
         while True:
             local_port = random.randint(1024, 65535)
             try:
                 if self.should_stop:
-                    return
+                    return False
                 _nat_type, gamehost, gameport = stun.get_ip_info('0.0.0.0', local_port)
                 if gameport is None:
+                    self.game.add_message('STUN failed; retrying...')
                     print('retrying stun connection')
                     continue
                 self.my_addr = (gamehost, gameport)
+                self.game.add_message('Public UDP address: %s:%d' % self.my_addr)
                 print('external host %s:%d' % self.my_addr)
                 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 sock.bind(('', local_port))
                 print('listening on port %d' % local_port)
-            except socket.error:
+            except socket.error as err:
+                self.game.add_message('Network setup failed; retrying: %s' % err)
                 print('retrying establishing server')
                 continue
             break
         self.socket = sock
+        return True
 
     def setup_addr_name(self):
         url = MATCH_SERVER + '/register/chesschase0/%s/%d/' % self.my_addr
+        self.game.add_message('Registering with match server...')
         print('registering at %s' % url)
-        self.address = urllib.request.urlopen(url).read().decode('utf-8')
+        try:
+            self.address = urllib.request.urlopen(url, timeout=10).read().decode('utf-8')
+        except urllib.error.HTTPError as err:
+            self.game.add_message('Match server rejected registration: HTTP %d' % err.code)
+            return False
+        except Exception as err:
+            self.game.add_message('Match server registration failed: %s' % err)
+            return False
         self.game.add_message('')
         self.game.add_message('Your address is:')
         self.game.add_message(self.address.upper())
         self.game.add_message('')
         self.game.add_message('Type the address of a friend to play with them')
+        return True
 
     def wait_for_connections(self):
         while not self.peers:
@@ -93,7 +105,10 @@ class NetEngine:
                 return
             url = MATCH_SERVER + '/lookup/chesschase0/%s/' % self.address.replace(' ', '%20')
             print('checking game at %s' % url)
-            self.add_peers(urllib.request.urlopen(url).read().decode('utf-8'))
+            try:
+                self.add_peers(urllib.request.urlopen(url, timeout=10).read().decode('utf-8'))
+            except Exception as err:
+                self.game.add_message('Match server lookup failed: %s' % err)
 
     def connect(self, address):
         connect_thread = threading.Thread(target=self.connect_thread_go, args=(address, ))
@@ -108,12 +123,15 @@ class NetEngine:
         url = MATCH_SERVER + '/connect/chesschase0/%s/%s/' % (self.address.replace(' ', '%20'), addr.lower().replace(' ', '%20'))
         print('looking up host at %s' % url)
         try:
-            response = urllib.request.urlopen(url).read()
+            response = urllib.request.urlopen(url, timeout=10).read()
         except urllib.error.HTTPError as err:
             if err.code == 404:
                 self.game.add_message('No such game: %s' % addr)
             else:
                 self.game.add_message('Server error when looking up game: %s' % addr)
+            return
+        except Exception as err:
+            self.game.add_message('Match server connection failed: %s' % err)
             return
         self.add_peers(response.decode('utf-8'))
 
