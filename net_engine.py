@@ -12,6 +12,13 @@ import stun
 import env
 
 MATCH_SERVER = 'https://game-match-server.yairchu.workers.dev'
+STUN_SERVERS = [
+    ('stun.l.google.com', 19302),
+    ('stun1.l.google.com', 19302),
+    ('stun2.l.google.com', 19302),
+    ('stun3.l.google.com', 19302),
+    ('stun4.l.google.com', 19302),
+]
 
 def poll(sock):
     return select.select([sock], [], [], 0)[0] != []
@@ -57,27 +64,31 @@ class NetEngine:
         self.game.add_message('Finding public UDP address...')
         while True:
             local_port = random.randint(1024, 65535)
-            try:
+            for stun_host, stun_port in STUN_SERVERS:
                 if self.should_stop:
                     return False
-                _nat_type, gamehost, gameport = stun.get_ip_info('0.0.0.0', local_port)
-                if gameport is None:
-                    self.game.add_message('STUN failed; retrying...')
-                    print('retrying stun connection')
+                try:
+                    _nat_type, gamehost, gameport = stun.get_ip_info(
+                        '0.0.0.0',
+                        local_port,
+                        stun_host=stun_host,
+                        stun_port=stun_port)
+                    if gameport is None:
+                        print('retrying stun connection')
+                        continue
+                    self.my_addr = (gamehost, gameport)
+                    self.game.add_message('Public UDP address: %s:%d' % self.my_addr)
+                    print('external host %s:%d' % self.my_addr)
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    sock.bind(('', local_port))
+                    print('listening on port %d' % local_port)
+                    self.socket = sock
+                    return True
+                except socket.error as err:
+                    self.game.add_message('Network setup failed; retrying: %s' % err)
+                    print('retrying establishing server')
                     continue
-                self.my_addr = (gamehost, gameport)
-                self.game.add_message('Public UDP address: %s:%d' % self.my_addr)
-                print('external host %s:%d' % self.my_addr)
-                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                sock.bind(('', local_port))
-                print('listening on port %d' % local_port)
-            except socket.error as err:
-                self.game.add_message('Network setup failed; retrying: %s' % err)
-                print('retrying establishing server')
-                continue
-            break
-        self.socket = sock
-        return True
+            self.game.add_message('STUN failed; retrying...')
 
     def setup_addr_name(self):
         url = MATCH_SERVER + '/register/chesschase0/%s/%d/' % self.my_addr
