@@ -1,0 +1,18 @@
+[project]
+name = "chess-chase"
+version = "0.1.0"
+description = "A multiplayer real-time strategy game based on Chess."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "kivy",
+    "pystun3",
+]
+
+[project.optional-dependencies]
+macos-build = [
+    "py2app",
+]
+
+[tool.uv]
+package = false

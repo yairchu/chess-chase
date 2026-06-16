@@ -10,11 +10,11 @@ Download the app from the [releases page](https://github.com/yairchu/chess2/rele
 
 ### Other platforms
 
-* Install Python (version 3.3 or above)
+* Install Python (version 3.10 or above)
+* Install [uv](https://docs.astral.sh/uv/)
 * In your terminal:
-* `python3 -m pip install kivy --pre --extra-index-url https://kivy.org/downloads/simple/`
-* `python3 -m pip install pystun3`
-* To run the game type `python3 main.py` from the game's folder
+* `uv sync`
+* To run the game type `uv run python main.py` from the game's folder
 
 ## Playing
 
@@ -40,7 +40,8 @@ Chess Chase is played vs friends over the network.
 
 ### Building a macOS app
 
-    python3 setup.py py2app
+    uv sync --extra macos-build
+    uv run python setup.py py2app
 
     # Remove unneeded resources to reduce app size
     cd dist
@@ -61,8 +62,7 @@ To find signing id, run:
 
 ### Building a Windows exe
 
-    pip install pyinstaller
-    pyinstaller -F main.py
+    uv tool run pyinstaller -F main.py
     copy chess.png dist
     copy <PYTHONPATH>\share\sdl2\bin\libpng<VER>.dll dist
 
