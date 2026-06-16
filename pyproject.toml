@@ -11,7 +11,7 @@ dependencies = [
 
 [project.optional-dependencies]
 macos-build = [
-    "py2app",
+    "pyinstaller",
 ]
 
 [tool.uv]

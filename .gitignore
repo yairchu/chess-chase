@@ -7,3 +7,5 @@ __pycache__/
 /stun/
 /apple-id.app-specific-password
 *.appiconset
+chesschase-mac-v*.zip
+/*.app/

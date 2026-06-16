@@ -41,24 +41,15 @@ Chess Chase is played vs friends over the network.
 ### Building a macOS app
 
     uv sync --extra macos-build
-    uv run python setup.py py2app
+    uv run pyinstaller "Chess Chase.spec"
 
-    # Remove unneeded resources to reduce app size
-    cd dist
-    rm Chess\ Chase.app/Contents/Frameworks/lib*.dylib
-    rm -rf Chess\ Chase.app/Contents/Resources/lib/{tcl,tk}*
-    rm -r Chess\ Chase.app/Contents/Resources/lib/python3.8/numpy
+To sign and notarize a release zip:
 
-    # Sign and notarize (One needs to join the apple paid developer program for this)
-    codesign --timestamp -s "Developer ID Application: <YOUR-SIGNING-ID>" -f --deep Chess\ Chase.app
-    zip -r "chesschase-mac.zip" "Chess Chase.app"
-    xcrun altool -u <APPLE-ID-EMAIL> -p <APP-SPECIFIC-PASSWORD> --notarize-app --primary-bundle-id org.yairchu.chesschase -f chesschase-mac.zip
+    NOTARY_PROFILE=yair-personal-notarise ./release-mac.sh
 
 To find signing id, run:
 
     security find-identity -v -p codesigning
-
-(this worked for me on macOS 10.14.6 with Python 3.8.2 and kivy v2.0.0rc1)
 
 ### Building a Windows exe
 

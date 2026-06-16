@@ -1,9 +1,13 @@
 import itertools
+import os
+import sys
 from itertools import count
 
 from kivy.uix.image import Image
 
 import env
+
+ROOT = getattr(sys, '_MEIPASS', os.path.dirname(__file__))
 
 class Piece:
     freeze_time = 0 if env.dev_mode else 80
@@ -235,7 +239,7 @@ class Pawn(Piece):
 
 first_row = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
 
-pieces_image = Image(source='chess.png').texture
+pieces_image = Image(source=os.path.join(ROOT, 'chess.png')).texture
 S = pieces_image.size[1]/2
 
 for x, piece in enumerate([King, Queen, Bishop, Knight, Rook, Pawn]):
