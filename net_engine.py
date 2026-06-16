@@ -26,6 +26,10 @@ def poll(sock):
 def any_actions(actions):
     return any(acts for _, acts in actions)
 
+def urlopen(url):
+    req = urllib.request.Request(url, headers={'User-Agent': 'Chess-Chase/0.1'})
+    return urllib.request.urlopen(req, timeout=10)
+
 class NetEngine:
     latency = 5
     replay_max_wait = 30
@@ -95,7 +99,7 @@ class NetEngine:
         self.game.add_message('Registering with match server...')
         print('registering at %s' % url)
         try:
-            self.address = urllib.request.urlopen(url, timeout=10).read().decode('utf-8')
+            self.address = urlopen(url).read().decode('utf-8')
         except urllib.error.HTTPError as err:
             self.game.add_message('Match server rejected registration: HTTP %d' % err.code)
             return False
@@ -117,7 +121,7 @@ class NetEngine:
             url = MATCH_SERVER + '/lookup/chesschase0/%s/' % self.address.replace(' ', '%20')
             print('checking game at %s' % url)
             try:
-                self.add_peers(urllib.request.urlopen(url, timeout=10).read().decode('utf-8'))
+                self.add_peers(urlopen(url).read().decode('utf-8'))
             except Exception as err:
                 self.game.add_message('Match server lookup failed: %s' % err)
 
@@ -134,7 +138,7 @@ class NetEngine:
         url = MATCH_SERVER + '/connect/chesschase0/%s/%s/' % (self.address.replace(' ', '%20'), addr.lower().replace(' ', '%20'))
         print('looking up host at %s' % url)
         try:
-            response = urllib.request.urlopen(url, timeout=10).read()
+            response = urlopen(url).read()
         except urllib.error.HTTPError as err:
             if err.code == 404:
                 self.game.add_message('No such game: %s' % addr)
