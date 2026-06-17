@@ -13,8 +13,11 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 20
     permissions:
       contents: write
+    env:
+      KIVY_GL_BACKEND: angle_sdl2
 
     steps:
       - uses: actions/checkout@v4
