@@ -57,10 +57,14 @@ Windows builds are produced by GitHub Actions. Run the "Windows build" workflow 
 
 ### Build the iOS app
 
-* Clone a clean project directory without any build artifacts
-* Copy the `stun` python module to the project directory
-* Follow the instructions at https://kivy.org/doc/stable/guide/packaging-ios.html and use the clean source directory
-* Tick the "Requires full screen" check-box in Xcode's "General" tab
-* `brew install Nonchalant/appicon/appicon`
-* Use `appicon` to generate the icon from a png source and add it in Xcode
-* In chess-chase-Info.plist, add a `NSCameraUsageDescription` field explaining that the app doesn't use the camera, and it's due to kivy
+Install Xcode and the Kivy iOS prerequisites:
+
+    brew install autoconf automake libtool pkg-config
+    brew link libtool
+    xcodebuild -downloadComponent MetalToolchain
+
+Then generate/open the Xcode project:
+
+    ./setup-ios.sh
+
+The first run compiles the Kivy iOS toolchain and can take a long time. In Xcode, choose your development team, connect an iPhone, and run the `ChessChase` target.

@@ -2,6 +2,14 @@
 A networked real-time strategy game based on Chess
 '''
 
+import os
+
+os.environ.setdefault('KIVY_NO_ARGS', '1')
+
+import ssl_certs
+
+ssl_certs.configure_certifi()
+
 from kivy.app import App
 from kivy.clock import Clock, mainthread
 from kivy.config import Config

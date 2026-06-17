@@ -130,6 +130,7 @@ name = "chess-chase"
 version = "1.2.1"
 source = { virtual = "." }
 dependencies = [
+    { name = "certifi" },
     { name = "kivy" },
     { name = "pystun3" },
 ]
@@ -144,6 +145,7 @@ macos-build = [
 
 [package.metadata]
 requires-dist = [
+    { name = "certifi" },
     { name = "kivy" },
     { name = "pyinstaller", marker = "extra == 'build'" },
     { name = "pyinstaller", marker = "extra == 'macos-build'" },

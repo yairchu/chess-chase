@@ -5,6 +5,7 @@ description = "A multiplayer real-time strategy game based on Chess."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "certifi",
     "kivy",
     "pystun3",
 ]
