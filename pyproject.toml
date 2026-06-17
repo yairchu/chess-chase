@@ -10,6 +10,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+build = [
+    "pyinstaller",
+]
 macos-build = [
     "pyinstaller",
 ]

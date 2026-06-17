@@ -135,6 +135,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+build = [
+    { name = "pyinstaller" },
+]
 macos-build = [
     { name = "pyinstaller" },
 ]
@@ -142,10 +145,11 @@ macos-build = [
 [package.metadata]
 requires-dist = [
     { name = "kivy" },
+    { name = "pyinstaller", marker = "extra == 'build'" },
     { name = "pyinstaller", marker = "extra == 'macos-build'" },
     { name = "pystun3" },
 ]
-provides-extras = ["macos-build"]
+provides-extras = ["build", "macos-build"]
 
 [[package]]
 name = "docutils"

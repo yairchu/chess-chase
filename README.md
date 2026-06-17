@@ -6,7 +6,7 @@ Chess-Chase is a multi-player real time strategy game based on the classic game 
 
 ### Installing on macOS and Windows
 
-Download the app from the [releases page](https://github.com/yairchu/chess2/releases)
+Download the app from the [releases page](https://github.com/yairchu/chess-chase/releases)
 
 ### Other platforms
 
@@ -40,7 +40,7 @@ Chess Chase is played vs friends over the network.
 
 ### Building a macOS app
 
-    uv sync --extra macos-build
+    uv sync --extra build
     uv run pyinstaller "Chess Chase.spec"
 
 To sign and notarize a release zip:
@@ -53,9 +53,7 @@ To find signing id, run:
 
 ### Building a Windows exe
 
-    uv tool run pyinstaller -F main.py
-    copy chess.png dist
-    copy <PYTHONPATH>\share\sdl2\bin\libpng<VER>.dll dist
+Windows builds are produced by GitHub Actions. Run the "Windows build" workflow manually, or push a `v*` tag to attach the zip to that release.
 
 ### Build the iOS app
 
