@@ -3,7 +3,7 @@ import socket
 import unittest
 
 from game_model import GameModel
-from net_engine import NetEngine
+from net_engine import NetEngine, parse_addr
 
 class GameInstance:
     def __init__(self):
@@ -31,6 +31,17 @@ class GameInstance:
             break
 
 class TestSync(unittest.TestCase):
+    def test_parse_addr(self):
+        self.assertEqual(parse_addr('127.0.0.1:1234'), ('127.0.0.1', 1234))
+
+    def test_add_peers_json_groups_candidates(self):
+        engine = NetEngine(GameModel())
+        engine.my_addr = ('203.0.113.1', 1234)
+        engine.local_addr = ('192.168.1.10', 1234)
+        engine.add_peers_json('[["203.0.113.1:1234", "10.0.0.10:1234"], ["203.0.113.2:5678", "192.168.1.20:5678"]]')
+        self.assertEqual(engine.peers, [[('203.0.113.2', 5678), ('192.168.1.20', 5678)]])
+        self.assertEqual(engine.peer_count, 1)
+
     def test_stopped_connect_thread_exits_before_address_registration(self):
         engine = NetEngine(GameModel())
         engine.should_stop = True
@@ -40,7 +51,8 @@ class TestSync(unittest.TestCase):
         instances = [GameInstance() for _ in range(2)]
         for i in range(2):
             other = 1-i
-            instances[i].net_engine.peers = [('127.0.0.1', instances[other].port)]
+            instances[i].net_engine.peers = [[('127.0.0.1', instances[other].port)]]
+            instances[i].net_engine.peer_count = 1
         for i in range(1000000):
             inst = random.choice(instances)
             r = random.random()

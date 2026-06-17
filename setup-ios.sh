@@ -39,4 +39,6 @@ plist=$(find "$project_dir" -name '*-Info.plist' -print -quit)
     /usr/libexec/PlistBuddy -c 'Add :UIRequiresFullScreen bool true' "$plist"
 /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription Kivy includes a camera provider, but Chess Chase does not use the camera." "$plist" 2>/dev/null || \
     /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string Kivy includes a camera provider, but Chess Chase does not use the camera." "$plist"
+/usr/libexec/PlistBuddy -c "Set :NSLocalNetworkUsageDescription Chess Chase uses direct peer-to-peer networking for multiplayer games." "$plist" 2>/dev/null || \
+    /usr/libexec/PlistBuddy -c "Add :NSLocalNetworkUsageDescription string Chess Chase uses direct peer-to-peer networking for multiplayer games." "$plist"
 open "$project_dir/$app_name.xcodeproj"

@@ -1,3 +1,4 @@
+import json
 import marshal
 import random
 import select
@@ -5,6 +6,7 @@ import socket
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 import stun
@@ -30,6 +32,23 @@ def urlopen(url):
     req = urllib.request.Request(url, headers={'User-Agent': 'Chess-Chase/0.1'})
     return urllib.request.urlopen(req, timeout=10)
 
+def quote_path(value):
+    return urllib.parse.quote(value, safe='')
+
+def get_lan_ip():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sock.connect(('8.8.8.8', 80))
+        return sock.getsockname()[0]
+    except OSError:
+        return '127.0.0.1'
+    finally:
+        sock.close()
+
+def parse_addr(value):
+    host, port_str = value.rsplit(':', 1)
+    return host, int(port_str)
+
 class NetEngine:
     latency = 5
     replay_max_wait = 30
@@ -43,6 +62,7 @@ class NetEngine:
 
     def reset(self):
         self.peers = []
+        self.peer_count = 0
         self.address = None
         self.last_comm_time = None
         self.comm_gap_msg_at = 10
@@ -81,7 +101,9 @@ class NetEngine:
                         print('retrying stun connection')
                         continue
                     self.my_addr = (gamehost, gameport)
+                    self.local_addr = (get_lan_ip(), local_port)
                     self.game.add_message('Public UDP address: %s:%d' % self.my_addr)
+                    self.game.add_message('Local UDP address: %s:%d' % self.local_addr)
                     print('external host %s:%d' % self.my_addr)
                     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     sock.bind(('', local_port))
@@ -95,7 +117,8 @@ class NetEngine:
             self.game.add_message('STUN failed; retrying...')
 
     def setup_addr_name(self):
-        url = MATCH_SERVER + '/register/chesschase0/%s/%d/' % self.my_addr
+        url = MATCH_SERVER + '/register2/chesschase0/%s/%d/%s/' % (
+            self.my_addr[0], self.my_addr[1], self.local_addr[0])
         self.game.add_message('Registering with match server...')
         print('registering at %s' % url)
         try:
@@ -118,10 +141,10 @@ class NetEngine:
             time.sleep(5)
             if self.should_stop:
                 return
-            url = MATCH_SERVER + '/lookup/chesschase0/%s/' % self.address.replace(' ', '%20')
+            url = MATCH_SERVER + '/lookup2/chesschase0/%s/' % quote_path(self.address)
             print('checking game at %s' % url)
             try:
-                self.add_peers(urlopen(url).read().decode('utf-8'))
+                self.add_peers_json(urlopen(url).read().decode('utf-8'))
             except Exception as err:
                 self.game.add_message('Match server lookup failed: %s' % err)
 
@@ -137,7 +160,8 @@ class NetEngine:
                 return
             # Net thread didn't finish
             time.sleep(1)
-        url = MATCH_SERVER + '/connect/chesschase0/%s/%s/' % (self.address.replace(' ', '%20'), addr.lower().replace(' ', '%20'))
+        url = MATCH_SERVER + '/connect2/chesschase0/%s/%s/' % (
+            quote_path(self.address), quote_path(addr.lower()))
         print('looking up host at %s' % url)
         try:
             response = urlopen(url).read()
@@ -150,18 +174,18 @@ class NetEngine:
         except Exception as err:
             self.game.add_message('Match server connection failed: %s' % err)
             return
-        self.add_peers(response.decode('utf-8'))
+        self.add_peers_json(response.decode('utf-8'))
 
-    def add_peers(self, peers_str):
-        for x in peers_str.split():
-            host, port_str = x.split(':')
-            port = int(port_str)
-            if (host, port) == self.my_addr:
+    def add_peers_json(self, peers_json):
+        for addresses in json.loads(peers_json):
+            peer = [parse_addr(address) for address in addresses]
+            if any(address in [self.my_addr, self.local_addr] for address in peer):
                 continue
-            if (host, port) in self.peers:
+            if peer in self.peers:
                 continue
-            print('established connection with %s:%d' % (host, port))
-            self.peers.append((host, port))
+            print('established connection with %s' % peer)
+            self.peers.append(peer)
+            self.peer_count += 1
             self.game.messages.clear()
             self.game.add_message('')
             self.game.add_message('Connection successful!')
@@ -182,7 +206,11 @@ class NetEngine:
                     max(0, self.game.counter-self.latency),
                     self.game.counter+self.latency)]))
         for peer in self.peers:
-            self.socket.sendto(packet, 0, peer)
+            for address in peer:
+                try:
+                    self.socket.sendto(packet, 0, address)
+                except OSError as err:
+                    print('failed sending to %s:%d: %s' % (address + (err, )))
         while poll(self.socket):
             self.last_comm_time = time.time()
             packet, peer = self.socket.recvfrom(0x1000)
@@ -224,7 +252,7 @@ class NetEngine:
             if self.game.counter < self.latency:
                 self.game.counter += 1
                 return
-            if len(self.iter_actions.get(self.game.counter, {})) <= len(self.peers):
+            if len(self.iter_actions.get(self.game.counter, {})) <= self.peer_count:
                 # We haven't got communications from all peers for this iteration.
                 # So we'll wait.
                 return
