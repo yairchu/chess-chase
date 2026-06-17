@@ -31,6 +31,11 @@ class GameInstance:
             break
 
 class TestSync(unittest.TestCase):
+    def test_stopped_connect_thread_exits_before_address_registration(self):
+        engine = NetEngine(GameModel())
+        engine.should_stop = True
+        engine.connect_thread_go('SOME GAME')
+
     def test_sync(self):
         instances = [GameInstance() for _ in range(2)]
         for i in range(2):

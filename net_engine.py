@@ -52,7 +52,7 @@ class NetEngine:
     def start(self):
         self.game.reset()
         self.should_stop = False
-        net_thread = threading.Thread(target=self.net_thread_go)
+        net_thread = threading.Thread(target=self.net_thread_go, daemon=True)
         self.threads.append(net_thread)
         if not env.dev_mode:
             net_thread.start()
@@ -126,13 +126,15 @@ class NetEngine:
                 self.game.add_message('Match server lookup failed: %s' % err)
 
     def connect(self, address):
-        connect_thread = threading.Thread(target=self.connect_thread_go, args=(address, ))
+        connect_thread = threading.Thread(target=self.connect_thread_go, args=(address, ), daemon=True)
         self.threads.append(connect_thread)
         connect_thread.start()
 
     def connect_thread_go(self, addr):
         self.game.add_message('Establishing connection with: %s' % addr)
         while self.address is None:
+            if self.should_stop:
+                return
             # Net thread didn't finish
             time.sleep(1)
         url = MATCH_SERVER + '/connect/chesschase0/%s/%s/' % (self.address.replace(' ', '%20'), addr.lower().replace(' ', '%20'))
