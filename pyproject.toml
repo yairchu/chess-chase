@@ -12,9 +12,11 @@ dependencies = [
 
 [project.optional-dependencies]
 build = [
+    "pillow",
     "pyinstaller",
 ]
 macos-build = [
+    "pillow",
     "pyinstaller",
 ]
 

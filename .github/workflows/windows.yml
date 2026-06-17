@@ -28,7 +28,9 @@ jobs:
         run: uv sync --extra build
 
       - name: Build app
-        run: uv run pyinstaller --clean --noconfirm --windowed --name "Chess Chase" --add-data "chess.png;." main.py
+        run: |
+          uv run python generate_icons.py
+          uv run pyinstaller --clean --noconfirm --windowed --name "Chess Chase" --icon "build/icons/Chess Chase.ico" --add-data "chess.png;." main.py
 
       - name: Zip app
         shell: pwsh

@@ -13,6 +13,7 @@ default_identity=$(security find-identity -v -p codesigning | awk -F\" '/Develop
 export CODESIGN_IDENTITY
 
 uv sync --extra macos-build
+uv run python generate_icons.py
 PYINSTALLER_VERIFY_BUNDLE_SIGNATURE=1 uv run pyinstaller --clean --noconfirm "Chess Chase.spec"
 
 codesign --verify --deep --strict --verbose=2 "$app"

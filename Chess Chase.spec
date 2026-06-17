@@ -48,7 +48,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='Chess Chase.app',
-    icon=None,
+    icon='build/icons/Chess Chase.icns',
     bundle_identifier='org.yairchu.chesschase',
     codesign_identity=codesign_identity,
     entitlements_file=None,
