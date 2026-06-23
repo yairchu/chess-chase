@@ -161,6 +161,7 @@ class NetEngine:
                 return
             # Net thread didn't finish
             time.sleep(1)
+        self.game.add_message('Your address is still: %s' % self.address.upper())
         url = MATCH_SERVER + '/connect2/chesschase0/%s/%s/' % (
             quote_path(self.address), quote_path(addr.lower()))
         print('looking up host at %s' % url)
@@ -191,6 +192,8 @@ class NetEngine:
             self.game.add_message('')
             self.game.add_message('Peer found by match server.')
             self.game.add_message('Trying direct UDP communication...')
+            if self.address:
+                self.game.add_message('Your address is still: %s' % self.address.upper())
             self.game.mode = 'play'
             self.game.init()
             self.last_comm_time = time.time()
