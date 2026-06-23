@@ -5,7 +5,7 @@ import marshal
 import time
 
 from game_model import GameModel
-from net_engine import NetEngine, parse_addr
+from net_engine import NetEngine, format_addr, parse_addr
 
 class GameInstance:
     def __init__(self):
@@ -35,14 +35,16 @@ class GameInstance:
 class TestSync(unittest.TestCase):
     def test_parse_addr(self):
         self.assertEqual(parse_addr('127.0.0.1:1234'), ('127.0.0.1', 1234))
+        self.assertEqual(parse_addr('[2001:db8::1]:1234'), ('2001:db8::1', 1234))
+        self.assertEqual(format_addr(('2001:db8::1', 1234)), '[2001:db8::1]:1234')
 
     def test_add_peers_json_groups_candidates(self):
         engine = NetEngine(GameModel())
         engine.address = 'room words'
         engine.my_addr = ('203.0.113.1', 1234)
         engine.local_addr = ('192.168.1.10', 1234)
-        engine.add_peers_json('[["203.0.113.1:1234", "10.0.0.10:1234"], ["203.0.113.2:5678", "192.168.1.20:5678"]]')
-        self.assertEqual(engine.peers, [[('203.0.113.2', 5678), ('192.168.1.20', 5678)]])
+        engine.add_peers_json('[["203.0.113.1:1234", "10.0.0.10:1234"], ["203.0.113.2:5678", "192.168.1.20:5678", "[2001:db8::2]:5678"]]')
+        self.assertEqual(engine.peers, [[('203.0.113.2', 5678), ('192.168.1.20', 5678), ('2001:db8::2', 5678)]])
         self.assertEqual(engine.peer_count, 1)
         self.assertIn('Trying direct UDP communication...', engine.game.messages)
         self.assertIn('Your address is still: ROOM WORDS', engine.game.messages)
