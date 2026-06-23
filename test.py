@@ -1,6 +1,8 @@
 import random
 import socket
 import unittest
+import marshal
+import time
 
 from game_model import GameModel
 from net_engine import NetEngine, parse_addr
@@ -41,6 +43,27 @@ class TestSync(unittest.TestCase):
         engine.add_peers_json('[["203.0.113.1:1234", "10.0.0.10:1234"], ["203.0.113.2:5678", "192.168.1.20:5678"]]')
         self.assertEqual(engine.peers, [[('203.0.113.2', 5678), ('192.168.1.20', 5678)]])
         self.assertEqual(engine.peer_count, 1)
+        self.assertIn('Trying direct UDP communication...', engine.game.messages)
+        self.assertNotIn('Direct UDP communication established!', engine.game.messages)
+
+    def test_udp_success_message_waits_for_packet(self):
+        engine = NetEngine(GameModel())
+        engine.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.addCleanup(engine.socket.close)
+        engine.socket.bind(('127.0.0.1', 0))
+
+        sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.addCleanup(sender.close)
+        packet = marshal.dumps((123, []))
+        sender.sendto(packet, engine.socket.getsockname())
+
+        for _ in range(100):
+            engine.communicate()
+            if 'Direct UDP communication established!' in engine.game.messages:
+                break
+            time.sleep(0.01)
+
+        self.assertIn('Direct UDP communication established!', engine.game.messages)
 
     def test_stopped_connect_thread_exits_before_address_registration(self):
         engine = NetEngine(GameModel())

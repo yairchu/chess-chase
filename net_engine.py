@@ -65,6 +65,7 @@ class NetEngine:
         self.peer_count = 0
         self.address = None
         self.last_comm_time = None
+        self.had_peer_packet = False
         self.comm_gap_msg_at = 10
         self.should_start_replay = False
         self.iter_actions = {}
@@ -188,8 +189,8 @@ class NetEngine:
             self.peer_count += 1
             self.game.messages.clear()
             self.game.add_message('')
-            self.game.add_message('Connection successful!')
-            self.game.add_message('THE GAME BEGINS!')
+            self.game.add_message('Peer found by match server.')
+            self.game.add_message('Trying direct UDP communication...')
             self.game.mode = 'play'
             self.game.init()
             self.last_comm_time = time.time()
@@ -214,6 +215,12 @@ class NetEngine:
         while poll(self.socket):
             self.last_comm_time = time.time()
             packet, peer = self.socket.recvfrom(0x1000)
+            if not self.had_peer_packet:
+                self.had_peer_packet = True
+                self.game.messages.clear()
+                self.game.add_message('')
+                self.game.add_message('Direct UDP communication established!')
+                self.game.add_message('THE GAME BEGINS!')
             peer_id, peer_iter_actions = marshal.loads(packet)
             for i, actions in peer_iter_actions:
                 acts = self.iter_actions.setdefault(i, {})
@@ -226,7 +233,10 @@ class NetEngine:
             return
         time_since_comm = time.time() - self.last_comm_time
         if time_since_comm >= self.comm_gap_msg_at:
-            self.game.add_message('No communication for %d seconds' % self.comm_gap_msg_at)
+            if self.had_peer_packet:
+                self.game.add_message('No communication for %d seconds' % self.comm_gap_msg_at)
+            else:
+                self.game.add_message('Waiting for direct UDP packets for %d seconds' % self.comm_gap_msg_at)
             self.comm_gap_msg_at += 5
         elif time_since_comm < 5:
             self.comm_gap_msg_at = 5
