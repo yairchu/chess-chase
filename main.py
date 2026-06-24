@@ -323,14 +323,27 @@ class ChessChaseApp(App):
             self.game.start_game(None)
         elif self.dev_args.dev_state == 'tutorial':
             self.game.start_tutorial(None)
+            self.seed_recent_moves()
         elif self.dev_args.dev_state == 'play':
             self.game.game_model.mode = 'play'
             self.game.game_model.players[self.game.game_model.my_id] = 0
             self.game.game_model.init()
             self.game.game_model.messages.clear()
             self.game.game_model.add_message('Dev game preview')
+            self.seed_recent_moves()
             self.game.refresh_layout()
         Clock.schedule_once(self.save_screenshot, self.dev_args.exit_after)
+
+    def seed_recent_moves(self):
+        self.game.game_model.counter = 100
+        player = self.game.game_model.player()
+        pieces = sorted(
+            (piece for piece in self.game.game_model.board.values() if piece.player == player),
+            key=lambda piece: piece.pos)[:6]
+        for i, piece in enumerate(pieces):
+            piece.freeze_time = 80
+            piece.last_move_time = 100 - (i + 1) * 12
+            piece.freeze_until = piece.last_move_time + piece.freeze_time
 
     def save_screenshot(self, _interval):
         self.game.on_clock(0)

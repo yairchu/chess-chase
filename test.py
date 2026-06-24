@@ -74,6 +74,20 @@ class TestSync(unittest.TestCase):
         engine.should_stop = True
         engine.connect_thread_go('SOME GAME')
 
+    def test_en_passant_before_player_has_moved(self):
+        game = GameModel()
+        game.init()
+        white_pawn = game.board.pop((2, 1))
+        black_pawn = game.board.pop((1, 6))
+        white_pawn.pos = (2, 4)
+        black_pawn.pos = (1, 4)
+        black_pawn.last_move_time = 10
+        game.board[white_pawn.pos] = white_pawn
+        game.board[black_pawn.pos] = black_pawn
+        game.player_last_move = {black_pawn.player: 10}
+
+        list(white_pawn.sight())
+
     def test_sync(self):
         instances = [GameInstance() for _ in range(2)]
         for i in range(2):

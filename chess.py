@@ -232,7 +232,7 @@ class Pawn(Piece):
                 continue
             if piece.last_move_time is None:
                 continue
-            if self.game.player_last_move[self.player] > piece.last_move_time:
+            if self.game.player_last_move.get(self.player, -1) > piece.last_move_time:
                 # Already moved after this pawn
                 continue
             yield piece
