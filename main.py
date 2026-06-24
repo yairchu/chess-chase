@@ -171,7 +171,7 @@ class Game(BoxLayout):
         self.add_widget(self.info_pane)
 
         self.info_pane.clear_widgets()
-        if not env.is_mobile:
+        if not env.is_mobile and screen != 'game':
             self.info_pane.add_widget(self.title_label)
         if screen == 'menu':
             self.info_pane.add_widget(self.button_pane)
