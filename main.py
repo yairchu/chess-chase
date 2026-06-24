@@ -38,6 +38,20 @@ from net_engine import NetEngine
 from widgets import WrappedLabel, WrappedButton
 
 num_msg_lines = 3 if env.is_mobile else 8
+TEXT_COLOR = (.92, .94, .92, 1)
+MUTED_TEXT_COLOR = (.72, .76, .74, 1)
+BUTTON_COLOR = (.20, .22, .22, 1)
+PRIMARY_BUTTON_COLOR = (.16, .39, .36, 1)
+
+def style_button(button, primary=False):
+    button.background_normal = ''
+    button.background_down = ''
+    button.background_color = PRIMARY_BUTTON_COLOR if primary else BUTTON_COLOR
+    button.color = TEXT_COLOR
+    button.font_size = '22sp'
+    button.bold = True
+    button.valign = 'middle'
+    return button
 
 class Game(BoxLayout):
     game_title = 'Chess Chase: No turns, no sight!'
@@ -55,41 +69,64 @@ class Game(BoxLayout):
         self.game_model.on_init.append(self.board_view.reset)
         self.game_model.on_init.append(self.on_game_init)
 
-        self.info_pane = BoxLayout(orientation='vertical', size_hint_min_y=500)
+        self.info_pane = BoxLayout(
+            orientation='vertical',
+            size_hint_min_y=500,
+            padding=[28, 18, 28, 18],
+            spacing=12)
 
         row_args = {'size_hint': (1, 0), 'size_hint_min_y': 70}
 
-        self.title_label = WrappedLabel(halign='center', text=self.game_title, **row_args)
+        self.title_label = WrappedLabel(
+            halign='center',
+            text=self.game_title,
+            color=TEXT_COLOR,
+            font_size='24sp',
+            bold=True,
+            **row_args)
         if not env.is_mobile:
             self.info_pane.add_widget(self.title_label)
 
-        self.button_pane = BoxLayout(orientation='vertical', size_hint=(1, .4))
+        self.button_pane = BoxLayout(orientation='vertical', size_hint=(1, .4), spacing=12)
         self.info_pane.add_widget(self.button_pane)
 
-        self.button_pane.add_widget(WrappedButton(
+        self.button_pane.add_widget(style_button(WrappedButton(
             halign='center',
             text='Tutorial: How to play',
-            on_press=self.start_tutorial))
-        self.button_pane.add_widget(WrappedButton(
+            on_press=self.start_tutorial)))
+        self.button_pane.add_widget(style_button(WrappedButton(
             halign='center',
             text='Start Game' if env.is_mobile else 'Start Game: Play with friends',
-            on_press=self.start_game))
-        self.menu_button = WrappedButton(
+            on_press=self.start_game), primary=True))
+        self.menu_button = style_button(WrappedButton(
             halign='center',
+            size_hint=(1, 0),
+            size_hint_min_y=58,
             text='Menu',
-            on_press=self.show_menu)
+            on_press=self.show_menu))
 
         self.score_label = WrappedLabel(
             halign='center',
+            color=MUTED_TEXT_COLOR,
+            font_size='21sp',
             **row_args)
         self.info_pane.add_widget(self.score_label)
 
-        self.label = WrappedLabel(halign='center', valign='bottom')
+        self.label = WrappedLabel(
+            halign='center',
+            valign='middle',
+            color=TEXT_COLOR,
+            font_size='21sp')
         self.info_pane.add_widget(self.label)
 
         self.text_input = TextInput(
             multiline=False,
             text_validate_unfocus=env.is_mobile,
+            background_color=(.92, .94, .92, 1),
+            foreground_color=(.06, .07, .07, 1),
+            cursor_color=(.16, .39, .36, 1),
+            font_size='22sp',
+            padding=[14, 14, 14, 14],
             **row_args)
         self.text_input.bind(on_text_validate=self.handle_text_input)
         if env.is_mobile:
@@ -306,6 +343,7 @@ class ChessChaseApp(App):
 if __name__ == '__main__':
     Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
     Window.softinput_mode = 'pan'
+    Window.clearcolor = (.04, .05, .05, 1)
     if args.screenshot:
         Window.size = tuple(map(int, args.window_size.lower().split('x', 1)))
     ChessChaseApp(args).run()
