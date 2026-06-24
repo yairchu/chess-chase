@@ -107,38 +107,25 @@ class RecentMovesView(Widget):
                 x += icon + gap
 
 class LogoView(Widget):
-    def __init__(self, **kwargs):
+    def __init__(self, texture, **kwargs):
         super().__init__(**kwargs)
+        self.texture = texture
         self.size_hint = (1, 0)
-        self.size_hint_min_y = 240
+        self.size_hint_min_y = 320
 
     def show(self):
         self.canvas.clear()
         if self.width <= 0 or self.height <= 0:
             return
-        title_size = min(76, max(42, self.width * .07, self.height * .22))
-        title = CoreLabel(text='CHESS\nCHASE', font_size=title_size, color=GOLD_COLOR)
-        title.refresh()
-        subtitle = CoreLabel(text='NO TURNS, NO SIGHT!', font_size=20, color=TEXT_COLOR)
-        subtitle.refresh()
-        cx = self.center_x
-        content_height = title.texture.size[1] + subtitle.texture.size[1] + 22
-        content_y = self.y + max(0, (self.height - content_height) / 2)
-        title_y = content_y + subtitle.texture.size[1] + 22
+        tw, th = self.texture.size
+        scale = min(self.width * .9 / tw, self.height * .95 / th)
+        width, height = tw * scale, th * scale
         with self.canvas:
-            Color(.10, .12, .12, 1)
-            Rectangle(pos=(cx - 54, content_y + 7), size=(108, 4))
-            Color(*GOLD_COLOR)
-            Rectangle(pos=(cx - 18, content_y + 7), size=(36, 4))
+            Color(1, 1, 1, 1)
             Rectangle(
-                texture=title.texture,
-                pos=(cx - title.texture.size[0] / 2, title_y),
-                size=title.texture.size)
-            Color(*TEXT_COLOR)
-            Rectangle(
-                texture=subtitle.texture,
-                pos=(cx - subtitle.texture.size[0] / 2, content_y + 15),
-                size=subtitle.texture.size)
+                texture=self.texture,
+                pos=(self.center_x - width / 2, self.center_y - height / 2),
+                size=(width, height))
 
 class ConnectingView(Widget):
     def __init__(self, **kwargs):
@@ -179,6 +166,7 @@ class Game(BoxLayout):
         self.game_model.on_message.append(self.update_label)
         self.net_engine = NetEngine(self.game_model)
         self.background_texture = CoreImage(os.path.join(os.path.dirname(__file__), 'background.jpg')).texture
+        self.logo_texture = CoreImage(os.path.join(os.path.dirname(__file__), 'logo.png')).texture
 
         self.score = [0, 0]
 
@@ -202,7 +190,7 @@ class Game(BoxLayout):
             font_size='24sp',
             bold=True,
             **row_args)
-        self.logo_view = LogoView()
+        self.logo_view = LogoView(self.logo_texture)
         self.connecting_view = ConnectingView()
 
         self.button_pane = BoxLayout(orientation='vertical', size_hint=(1, .4), spacing=12)
