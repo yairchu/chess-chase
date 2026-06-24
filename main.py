@@ -27,9 +27,12 @@ ssl_certs.configure_certifi()
 from kivy.app import App
 from kivy.clock import Clock, mainthread
 from kivy.config import Config
+from kivy.core.text import Label as CoreLabel
 from kivy.core.window import Window
+from kivy.graphics import Color, Rectangle
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
+from kivy.uix.widget import Widget
 
 import env
 from board_view import BoardView
@@ -53,6 +56,54 @@ def style_button(button, primary=False):
     button.valign = 'middle'
     return button
 
+class RecentMovesView(Widget):
+    def __init__(self, game, **kwargs):
+        super().__init__(**kwargs)
+        self.game = game
+        self.size_hint = (1, 0)
+        self.size_hint_min_y = 112
+
+    def show(self):
+        pieces = [
+            piece for piece in self.game.board.values()
+            if piece.last_move_time is not None
+        ]
+        pieces.sort(key=lambda piece: piece.last_move_time, reverse=True)
+        pieces = pieces[:6]
+
+        self.canvas.clear()
+        if not pieces:
+            return
+
+        with self.canvas:
+            label = CoreLabel(text='Last moved', font_size=24, color=MUTED_TEXT_COLOR)
+            label.refresh()
+            pad = 14
+            gap = 8
+            icon = max(32, min(58, (self.width - pad * 2) / len(pieces) - gap))
+            width = len(pieces) * icon + (len(pieces) - 1) * gap
+            x = self.x + max(pad, (self.width - width) / 2)
+            y = self.y + 14
+
+            Color(*MUTED_TEXT_COLOR)
+            Rectangle(texture=label.texture, pos=(x, y + icon + 6), size=label.texture.size)
+
+            for piece in pieces:
+                remaining = max(
+                    piece.freeze_until,
+                    self.game.player_last_move.get(piece.player, 0) + self.game.player_freeze_time,
+                ) - self.game.counter
+                total = max(piece.freeze_time, self.game.player_freeze_time, 1)
+                ratio = max(0, min(1, remaining / total))
+
+                Color(.86, .89, .86, 1)
+                Rectangle(pos=(x - 4, y - 8), size=(icon + 8, icon + 14))
+                Color(1, 1, 1, 1)
+                Rectangle(texture=piece.image(), pos=(x, y), size=(icon, icon))
+                Color(.18, .55, .50, 1)
+                Rectangle(pos=(x, y - 8), size=(icon * ratio, 5))
+                x += icon + gap
+
 class Game(BoxLayout):
     game_title = 'Chess Chase: No turns, no sight!'
 
@@ -66,6 +117,7 @@ class Game(BoxLayout):
         self.score = [0, 0]
 
         self.board_view = BoardView(self.game_model)
+        self.recent_moves_view = RecentMovesView(self.game_model)
         self.game_model.on_init.append(self.board_view.reset)
         self.game_model.on_init.append(self.on_game_init)
 
@@ -164,13 +216,17 @@ class Game(BoxLayout):
 
     def refresh_layout(self):
         screen = self.screen()
+        if screen == 'game':
+            self.orientation = 'horizontal' if self.size[0] > self.size[1] else 'vertical'
 
         self.clear_widgets()
+        self.info_pane.clear_widgets()
         if screen == 'game':
+            if self.orientation == 'vertical':
+                self.add_widget(self.recent_moves_view)
             self.add_widget(self.board_view)
         self.add_widget(self.info_pane)
 
-        self.info_pane.clear_widgets()
         if not env.is_mobile and screen != 'game':
             self.info_pane.add_widget(self.title_label)
         if screen == 'menu':
@@ -180,6 +236,8 @@ class Game(BoxLayout):
         else:
             self.info_pane.add_widget(self.menu_button)
             if screen == 'game':
+                if self.orientation == 'horizontal':
+                    self.info_pane.add_widget(self.recent_moves_view)
                 self.info_pane.add_widget(self.score_label)
             self.info_pane.add_widget(self.label)
             self.info_pane.add_widget(self.text_input)
@@ -256,7 +314,11 @@ class Game(BoxLayout):
             self.button_pane.size_hint_min_y = 140
             return
 
-        self.orientation = 'horizontal' if self.size[0] > self.size[1] else 'vertical'
+        orientation = 'horizontal' if self.size[0] > self.size[1] else 'vertical'
+        if self.orientation != orientation:
+            self.orientation = orientation
+            self.refresh_layout()
+            return
         p = 1/3
         if self.orientation == 'horizontal':
             self.info_pane.size_hint = (p, 1)
@@ -267,6 +329,8 @@ class Game(BoxLayout):
         else:
             self.info_pane.size_hint = (1, p)
             self.board_view.size_hint = (1, 1 / self.game_model.num_boards)
+            self.recent_moves_view.size_hint = (1, 0)
+            self.recent_moves_view.size_hint_min_y = 112
             self.button_pane.orientation = 'horizontal'
             self.button_pane.size_hint = (1, .4)
             self.button_pane.size_hint_min_y = 70
@@ -304,6 +368,7 @@ class Game(BoxLayout):
         self.net_engine.iteration()
         self.board_view.update_dst()
         self.board_view.show_board()
+        self.recent_moves_view.show()
 
 class ChessChaseApp(App):
     def __init__(self, dev_args=None, **kwargs):

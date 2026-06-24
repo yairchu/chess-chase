@@ -2,7 +2,6 @@ import itertools
 import operator
 import random
 
-from kivy.core.text import Label as CoreLabel
 from kivy.core.window import Window
 from kivy.graphics import Color, Rectangle
 from kivy.uix.widget import Widget
@@ -32,7 +31,6 @@ class BoardView(Widget):
         self.canvas.clear()
         sq = (self.square_size-1, self.square_size-1)
         with self.canvas:
-            self.draw_recent_moves(see)
             for (x, y), col in cols.items():
                 sx, sy = self.screen_pos((x, y))
                 Color(*[x/255 for x in col])
@@ -81,50 +79,6 @@ class BoardView(Widget):
                     texture=self.selected.image(),
                     pos=(x-self.square_size//2, y-self.square_size//2),
                     size=sq)
-
-    def draw_recent_moves(self, see):
-        board_h = self.square_size * self.game.board_size[1]
-        spare_h = self.height - board_h
-
-        pieces = [
-            piece for pos, piece in self.game.board.items()
-            if pos in see and piece.last_move_time is not None
-        ]
-        pieces.sort(key=lambda piece: piece.last_move_time, reverse=True)
-        pieces = pieces[:6]
-        if not pieces:
-            return
-
-        pad = 18
-        icon = max(32, min(
-            86,
-            max(54, max(spare_h, self.square_size * 2) * .18),
-            (self.width - pad * 2) / len(pieces) - 10))
-        gap = 10
-        width = len(pieces) * icon + (len(pieces) - 1) * gap
-        x = self.x + max(pad, (self.width - width) / 2)
-        y = self.y + board_h + 34 if spare_h >= icon + 70 else self.y + board_h - icon - 34
-
-        label = CoreLabel(text='Last moved', font_size=20, color=(.72, .76, .74, 1))
-        label.refresh()
-        Color(.72, .76, .74, 1)
-        Rectangle(texture=label.texture, pos=(x, y + icon + 6), size=label.texture.size)
-
-        for piece in pieces:
-            remaining = max(
-                piece.freeze_until,
-                self.game.player_last_move.get(piece.player, 0) + self.game.player_freeze_time,
-            ) - self.game.counter
-            total = max(piece.freeze_time, self.game.player_freeze_time, 1)
-            ratio = max(0, min(1, remaining / total))
-
-            Color(.12, .14, .14, 1)
-            Rectangle(pos=(x - 4, y - 8), size=(icon + 8, icon + 14))
-            Color(1, 1, 1, 1)
-            Rectangle(texture=piece.image(), pos=(x, y), size=(icon, icon))
-            Color(.18, .55, .50, 1)
-            Rectangle(pos=(x, y - 8), size=(icon * ratio, 5))
-            x += icon + gap
 
     def board_info(self):
         player = None if self.game.mode in ['demo', 'replay'] else self.game.player()
