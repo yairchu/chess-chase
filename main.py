@@ -74,6 +74,10 @@ class Game(BoxLayout):
             halign='center',
             text='Start Game' if env.is_mobile else 'Start Game: Play with friends',
             on_press=self.start_game))
+        self.menu_button = WrappedButton(
+            halign='center',
+            text='Menu',
+            on_press=self.show_menu)
 
         self.score_label = WrappedLabel(
             halign='center',
@@ -137,11 +141,22 @@ class Game(BoxLayout):
             self.info_pane.add_widget(self.label)
             self.text_input.focus = False
         else:
+            self.info_pane.add_widget(self.menu_button)
             if screen == 'game':
                 self.info_pane.add_widget(self.score_label)
             self.info_pane.add_widget(self.label)
             self.info_pane.add_widget(self.text_input)
         self.resized()
+
+    def show_menu(self, _=None):
+        if env.is_mobile:
+            self.text_input.hide_keyboard()
+        self.stop_net_engine()
+        self.game_model.mode = None
+        self.game_model.messages.clear()
+        self.game_model.add_message('')
+        self.game_model.add_message(self.game_title if env.is_mobile else 'Welcome to Chess Chase!')
+        self.refresh_layout()
 
     def stop_net_engine(self):
         if not self.net_engine:
