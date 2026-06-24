@@ -10,7 +10,7 @@ os.environ.setdefault('KIVY_NO_ARGS', '1')
 
 def parse_args(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dev-state', choices=['menu', 'setup', 'tutorial', 'play'], default='menu')
+    parser.add_argument('--dev-state', choices=['menu', 'setup', 'tutorial', 'play', 'demo'], default='menu')
     parser.add_argument('--screenshot', help='write a PNG after opening the requested dev state')
     parser.add_argument('--window-size', default='1200x800', help='WIDTHxHEIGHT for dev screenshots')
     parser.add_argument('--exit-after', type=float, default=0.5, help='seconds to wait before screenshot/exit')
@@ -156,7 +156,7 @@ class Game(BoxLayout):
             self.text_input.hide_keyboard()
 
     def screen(self):
-        if self.game_model.mode in ['tutorial', 'play', 'replay']:
+        if self.game_model.mode in ['tutorial', 'play', 'demo', 'replay']:
             return 'game'
         if self.game_model.mode == 'connect':
             return 'setup'
@@ -314,7 +314,7 @@ class ChessChaseApp(App):
         self.game = Game()
         if not env.is_mobile:
             self.game.text_input.focus = True
-        if self.dev_args and self.dev_args.screenshot:
+        if self.dev_args and (self.dev_args.screenshot or self.dev_args.dev_state != 'menu'):
             Clock.schedule_once(self.enter_dev_state, 0)
         return self.game
 
@@ -332,14 +332,25 @@ class ChessChaseApp(App):
             self.game.game_model.add_message('Dev game preview')
             self.seed_recent_moves()
             self.game.refresh_layout()
-        Clock.schedule_once(self.save_screenshot, self.dev_args.exit_after)
+        elif self.dev_args.dev_state == 'demo':
+            self.game.game_model.mode = 'demo'
+            self.game.game_model.players[self.game.game_model.my_id] = 0
+            self.game.game_model.init()
+            self.game.game_model.messages.clear()
+            self.game.game_model.add_message('Dev demo: control both sides')
+            if self.dev_args.screenshot:
+                self.seed_recent_moves()
+            self.game.refresh_layout()
+        if self.dev_args.screenshot:
+            Clock.schedule_once(self.save_screenshot, self.dev_args.exit_after)
 
     def seed_recent_moves(self):
         self.game.game_model.counter = 100
-        player = self.game.game_model.player()
-        pieces = sorted(
-            (piece for piece in self.game.game_model.board.values() if piece.player == player),
-            key=lambda piece: piece.pos)[:6]
+        pieces = []
+        for player in range(2):
+            pieces.extend(sorted(
+                (piece for piece in self.game.game_model.board.values() if piece.player == player),
+                key=lambda piece: piece.pos)[:3])
         for i, piece in enumerate(pieces):
             piece.freeze_time = 80
             piece.last_move_time = 100 - (i + 1) * 12

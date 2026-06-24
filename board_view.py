@@ -127,11 +127,11 @@ class BoardView(Widget):
             x += icon + gap
 
     def board_info(self):
-        player = None if self.game.mode == 'replay' else self.game.player()
+        player = None if self.game.mode in ['demo', 'replay'] else self.game.player()
         flash = {}
         if not env.is_mobile and not self.is_dragging:
             flashy = self.game.board.get(self.mouse_pos)
-            if flashy is not None and flashy.player == player:
+            if flashy is not None and self.can_control(flashy):
                 for pos in flashy.moves():
                     flash[pos] = flashy.sight_color
 
@@ -141,7 +141,8 @@ class BoardView(Widget):
             if player is not None and piece.side() != player%2:
                 continue
             see.add(piece.pos)
-            if piece.player == player:
+            moves = set()
+            if self.can_control(piece):
                 moves = set(piece.moves())
                 if self.mouse_pos in moves and not self.is_dragging and piece == self.selected:
                     flash[piece.pos] = piece.sight_color
@@ -149,7 +150,7 @@ class BoardView(Widget):
                     movesee[piece.pos] = piece.sight_color
             for dst in itertools.chain(piece.sight()):
                 see.add(dst)
-                if piece.player == player and dst in moves:
+                if dst in moves:
                     movesee[dst] = list(map(operator.add, movesee.get(dst, [0]*3), piece.sight_color))
 
         cols = {}
@@ -173,7 +174,7 @@ class BoardView(Widget):
             self.selected = self.potential_pieces[
                 (self.potential_pieces.index(self.selected)+d)%len(self.potential_pieces)]
             return
-        if self.mouse_pos in self.game.board and self.game.board[self.mouse_pos].player == self.game.player():
+        if self.mouse_pos in self.game.board and self.can_control(self.game.board[self.mouse_pos]):
             self.is_dragging = True
             self.selected = self.game.board[self.mouse_pos]
             self.dst_pos = None
@@ -212,6 +213,9 @@ class BoardView(Widget):
             pos = [s-1-x for x, s in zip(pos, self.game.board_size)]
         return tuple(sx+self.square_size*x for x, sx in zip(pos, self.pos))
 
+    def can_control(self, piece):
+        return self.game.mode == 'demo' or piece.player == self.game.player()
+
     last_pos = None
     def update_dst(self):
         if self.selected is not None and self.game.board.get(self.selected.pos) is not self.selected:
@@ -224,7 +228,7 @@ class BoardView(Widget):
         self.is_dragging = False
         self.potential_pieces = []
         for piece in self.game.board.values():
-            if piece.player == self.game.player() and self.mouse_pos in piece.moves():
+            if self.can_control(piece) and self.mouse_pos in piece.moves():
                 self.potential_pieces.append(piece)
         self.potential_pieces.sort(key = lambda x: x.move_preference)
         if [] == self.potential_pieces:

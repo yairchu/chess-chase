@@ -30,7 +30,7 @@ class GameModel:
             x()
 
     def active(self):
-        return self.mode in ['tutorial', 'play']
+        return self.mode in ['tutorial', 'play', 'demo']
 
     def player(self):
         return self.players.get(self.my_id)
