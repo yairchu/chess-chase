@@ -27,9 +27,10 @@ ssl_certs.configure_certifi()
 from kivy.app import App
 from kivy.clock import Clock, mainthread
 from kivy.config import Config
+from kivy.core.image import Image as CoreImage
 from kivy.core.text import Label as CoreLabel
 from kivy.core.window import Window
-from kivy.graphics import Color, Rectangle
+from kivy.graphics import Color, Ellipse, Line, Rectangle
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.widget import Widget
@@ -45,6 +46,7 @@ TEXT_COLOR = (.92, .94, .92, 1)
 MUTED_TEXT_COLOR = (.72, .76, .74, 1)
 BUTTON_COLOR = (.20, .22, .22, 1)
 PRIMARY_BUTTON_COLOR = (.16, .39, .36, 1)
+GOLD_COLOR = (.86, .64, .32, 1)
 
 def style_button(button, primary=False):
     button.background_normal = ''
@@ -104,6 +106,69 @@ class RecentMovesView(Widget):
                 Rectangle(pos=(x, y - 8), size=(icon * ratio, 5))
                 x += icon + gap
 
+class LogoView(Widget):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.size_hint = (1, 0)
+        self.size_hint_min_y = 240
+
+    def show(self):
+        self.canvas.clear()
+        if self.width <= 0 or self.height <= 0:
+            return
+        title_size = min(76, max(42, self.width * .07, self.height * .22))
+        title = CoreLabel(text='CHESS\nCHASE', font_size=title_size, color=GOLD_COLOR)
+        title.refresh()
+        subtitle = CoreLabel(text='NO TURNS, NO SIGHT!', font_size=20, color=TEXT_COLOR)
+        subtitle.refresh()
+        cx = self.center_x
+        content_height = title.texture.size[1] + subtitle.texture.size[1] + 22
+        content_y = self.y + max(0, (self.height - content_height) / 2)
+        title_y = content_y + subtitle.texture.size[1] + 22
+        with self.canvas:
+            Color(.10, .12, .12, 1)
+            Rectangle(pos=(cx - 54, content_y + 7), size=(108, 4))
+            Color(*GOLD_COLOR)
+            Rectangle(pos=(cx - 18, content_y + 7), size=(36, 4))
+            Rectangle(
+                texture=title.texture,
+                pos=(cx - title.texture.size[0] / 2, title_y),
+                size=title.texture.size)
+            Color(*TEXT_COLOR)
+            Rectangle(
+                texture=subtitle.texture,
+                pos=(cx - subtitle.texture.size[0] / 2, content_y + 15),
+                size=subtitle.texture.size)
+
+class ConnectingView(Widget):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.size_hint = (1, .45)
+
+    def show(self):
+        self.canvas.clear()
+        if self.width <= 0 or self.height <= 0:
+            return
+        cx, cy = self.center
+        radius = min(self.width, self.height) * .35
+        with self.canvas:
+            Color(.12, .36, .55, .28)
+            for i in range(1, 5):
+                Line(circle=(cx, cy, radius * i / 4), width=1)
+            Color(.22, .57, .86, .55)
+            Line(points=(cx - radius, cy, cx + radius, cy), width=1)
+            Line(points=(cx, cy - radius, cx, cy + radius), width=1)
+            label = CoreLabel(text='N', font_size=int(radius * .8), color=GOLD_COLOR)
+            label.refresh()
+            Color(*GOLD_COLOR)
+            Rectangle(
+                texture=label.texture,
+                pos=(cx - label.texture.size[0] / 2, cy - label.texture.size[1] / 2),
+                size=label.texture.size)
+            for i in range(3):
+                Color(.22, .57, .86, .35 + .2 * i)
+                Ellipse(pos=(cx - 20 + i * 20, self.y + 12), size=(8, 8))
+
 class Game(BoxLayout):
     game_title = 'Chess Chase: No turns, no sight!'
 
@@ -113,6 +178,7 @@ class Game(BoxLayout):
         self.game_model.king_captured = self.king_captured
         self.game_model.on_message.append(self.update_label)
         self.net_engine = NetEngine(self.game_model)
+        self.background_texture = CoreImage(os.path.join(os.path.dirname(__file__), 'background.jpg')).texture
 
         self.score = [0, 0]
 
@@ -136,8 +202,8 @@ class Game(BoxLayout):
             font_size='24sp',
             bold=True,
             **row_args)
-        if not env.is_mobile:
-            self.info_pane.add_widget(self.title_label)
+        self.logo_view = LogoView()
+        self.connecting_view = ConnectingView()
 
         self.button_pane = BoxLayout(orientation='vertical', size_hint=(1, .4), spacing=12)
         self.info_pane.add_widget(self.button_pane)
@@ -219,6 +285,7 @@ class Game(BoxLayout):
         if screen == 'game':
             self.orientation = 'horizontal' if self.size[0] > self.size[1] else 'vertical'
 
+        self.draw_background(screen)
         self.clear_widgets()
         self.info_pane.clear_widgets()
         if screen == 'game':
@@ -227,7 +294,9 @@ class Game(BoxLayout):
             self.add_widget(self.board_view)
         self.add_widget(self.info_pane)
 
-        if not env.is_mobile and screen != 'game':
+        if screen == 'menu':
+            self.info_pane.add_widget(self.logo_view)
+        elif not env.is_mobile and screen != 'game':
             self.info_pane.add_widget(self.title_label)
         if screen == 'menu':
             self.info_pane.add_widget(self.button_pane)
@@ -239,9 +308,27 @@ class Game(BoxLayout):
                 if self.orientation == 'horizontal':
                     self.info_pane.add_widget(self.recent_moves_view)
                 self.info_pane.add_widget(self.score_label)
+            elif screen == 'setup':
+                self.info_pane.add_widget(self.connecting_view)
             self.info_pane.add_widget(self.label)
             self.info_pane.add_widget(self.text_input)
         self.resized()
+
+    def draw_background(self, screen):
+        self.canvas.before.clear()
+        if screen == 'game':
+            return
+        tw, th = self.background_texture.size
+        scale = max(self.width / tw, self.height / th)
+        width, height = tw * scale, th * scale
+        with self.canvas.before:
+            Color(1, 1, 1, 1)
+            Rectangle(
+                texture=self.background_texture,
+                pos=(self.x + (self.width - width) / 2, self.y + (self.height - height) / 2),
+                size=(width, height))
+            Color(0, 0, 0, .52)
+            Rectangle(pos=self.pos, size=self.size)
 
     def show_menu(self, _=None):
         if env.is_mobile:
@@ -312,6 +399,7 @@ class Game(BoxLayout):
             self.button_pane.orientation = 'vertical'
             self.button_pane.size_hint = (1, .35)
             self.button_pane.size_hint_min_y = 140
+            self.draw_background(self.screen())
             return
 
         orientation = 'horizontal' if self.size[0] > self.size[1] else 'vertical'
@@ -369,6 +457,8 @@ class Game(BoxLayout):
         self.board_view.update_dst()
         self.board_view.show_board()
         self.recent_moves_view.show()
+        self.logo_view.show()
+        self.connecting_view.show()
 
 class ChessChaseApp(App):
     def __init__(self, dev_args=None, **kwargs):
