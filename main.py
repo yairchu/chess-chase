@@ -3,8 +3,22 @@ A networked real-time strategy game based on Chess
 '''
 
 import os
+import argparse
+import sys
 
 os.environ.setdefault('KIVY_NO_ARGS', '1')
+
+def parse_args(argv):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dev-state', choices=['menu', 'tutorial', 'play'], default='menu')
+    parser.add_argument('--screenshot', help='write a PNG after opening the requested dev state')
+    parser.add_argument('--window-size', default='1200x800', help='WIDTHxHEIGHT for dev screenshots')
+    parser.add_argument('--exit-after', type=float, default=0.5, help='seconds to wait before screenshot/exit')
+    return parser.parse_known_args(argv)[0]
+
+args = parse_args(sys.argv[1:])
+if args.screenshot:
+    os.environ['CHESSCHASE_DEV'] = '1'
 
 import ssl_certs
 
@@ -201,15 +215,40 @@ class Game(BoxLayout):
         self.board_view.show_board()
 
 class ChessChaseApp(App):
+    def __init__(self, dev_args=None, **kwargs):
+        super().__init__(**kwargs)
+        self.dev_args = dev_args
+
     def build(self):
         self.game = Game()
         if not env.is_mobile:
             self.game.text_input.focus = True
+        if self.dev_args and self.dev_args.screenshot:
+            Clock.schedule_once(self.enter_dev_state, 0)
         return self.game
+
+    def enter_dev_state(self, _interval):
+        if self.dev_args.dev_state == 'tutorial':
+            self.game.start_tutorial(None)
+        elif self.dev_args.dev_state == 'play':
+            self.game.game_model.mode = 'play'
+            self.game.game_model.init()
+            self.game.game_model.players[self.game.game_model.my_id] = 0
+            self.game.game_model.messages.clear()
+            self.game.game_model.add_message('Dev game preview')
+        Clock.schedule_once(self.save_screenshot, self.dev_args.exit_after)
+
+    def save_screenshot(self, _interval):
+        self.game.on_clock(0)
+        self.game.export_to_png(self.dev_args.screenshot)
+        self.stop()
     def stop(self):
         self.game.stop_net_engine()
+        super().stop()
 
 if __name__ == '__main__':
     Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
     Window.softinput_mode = 'pan'
-    ChessChaseApp().run()
+    if args.screenshot:
+        Window.size = tuple(map(int, args.window_size.lower().split('x', 1)))
+    ChessChaseApp(args).run()
