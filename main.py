@@ -10,7 +10,7 @@ os.environ.setdefault('KIVY_NO_ARGS', '1')
 
 def parse_args(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dev-state', choices=['menu', 'tutorial', 'play'], default='menu')
+    parser.add_argument('--dev-state', choices=['menu', 'setup', 'tutorial', 'play'], default='menu')
     parser.add_argument('--screenshot', help='write a PNG after opening the requested dev state')
     parser.add_argument('--window-size', default='1200x800', help='WIDTHxHEIGHT for dev screenshots')
     parser.add_argument('--exit-after', type=float, default=0.5, help='seconds to wait before screenshot/exit')
@@ -52,17 +52,16 @@ class Game(BoxLayout):
         self.score = [0, 0]
 
         self.board_view = BoardView(self.game_model)
-        self.add_widget(self.board_view)
         self.game_model.on_init.append(self.board_view.reset)
         self.game_model.on_init.append(self.on_game_init)
 
         self.info_pane = BoxLayout(orientation='vertical', size_hint_min_y=500)
-        self.add_widget(self.info_pane)
 
         row_args = {'size_hint': (1, 0), 'size_hint_min_y': 70}
 
+        self.title_label = WrappedLabel(halign='center', text=self.game_title, **row_args)
         if not env.is_mobile:
-            self.info_pane.add_widget(WrappedLabel(halign='center', text=self.game_title, **row_args))
+            self.info_pane.add_widget(self.title_label)
 
         self.button_pane = BoxLayout(orientation='vertical', size_hint=(1, .4))
         self.info_pane.add_widget(self.button_pane)
@@ -106,12 +105,43 @@ class Game(BoxLayout):
         self.game_model.add_message(self.game_title if env.is_mobile else 'Welcome to Chess Chase!')
 
         self.bind(size=self.resized)
+        self.refresh_layout()
         Clock.schedule_interval(self.on_clock, 1/30)
 
     @mainthread
     def on_game_init(self):
+        self.refresh_layout()
         if env.is_mobile and self.game_model.mode == 'play':
             self.text_input.hide_keyboard()
+
+    def screen(self):
+        if self.game_model.mode in ['tutorial', 'play', 'replay']:
+            return 'game'
+        if self.game_model.mode == 'connect':
+            return 'setup'
+        return 'menu'
+
+    def refresh_layout(self):
+        screen = self.screen()
+
+        self.clear_widgets()
+        if screen == 'game':
+            self.add_widget(self.board_view)
+        self.add_widget(self.info_pane)
+
+        self.info_pane.clear_widgets()
+        if not env.is_mobile:
+            self.info_pane.add_widget(self.title_label)
+        if screen == 'menu':
+            self.info_pane.add_widget(self.button_pane)
+            self.info_pane.add_widget(self.label)
+            self.text_input.focus = False
+        else:
+            if screen == 'game':
+                self.info_pane.add_widget(self.score_label)
+            self.info_pane.add_widget(self.label)
+            self.info_pane.add_widget(self.text_input)
+        self.resized()
 
     def stop_net_engine(self):
         if not self.net_engine:
@@ -127,6 +157,7 @@ class Game(BoxLayout):
         if env.is_mobile:
             self.text_input.show_keyboard()
         self.game_model.mode = 'connect'
+        self.refresh_layout()
         self.score = [0, 0]
         self.restart_net_engine()
         self.game_model.messages.clear()
@@ -157,6 +188,7 @@ class Game(BoxLayout):
             'This concludes our tutorial!',
             ]
         self.game_model.init()
+        self.refresh_layout()
         self.game_model.players[self.game_model.my_id] = 0
         self.net_engine.iter_actions = {}
 
@@ -165,6 +197,13 @@ class Game(BoxLayout):
         self.label.text = '\n'.join(self.game_model.messages[-num_msg_lines:])
 
     def resized(self, *args):
+        if self.screen() != 'game':
+            self.info_pane.size_hint = (1, 1)
+            self.button_pane.orientation = 'vertical'
+            self.button_pane.size_hint = (1, .35)
+            self.button_pane.size_hint_min_y = 140
+            return
+
         self.orientation = 'horizontal' if self.size[0] > self.size[1] else 'vertical'
         p = 1/3
         if self.orientation == 'horizontal':
@@ -228,14 +267,17 @@ class ChessChaseApp(App):
         return self.game
 
     def enter_dev_state(self, _interval):
-        if self.dev_args.dev_state == 'tutorial':
+        if self.dev_args.dev_state == 'setup':
+            self.game.start_game(None)
+        elif self.dev_args.dev_state == 'tutorial':
             self.game.start_tutorial(None)
         elif self.dev_args.dev_state == 'play':
             self.game.game_model.mode = 'play'
-            self.game.game_model.init()
             self.game.game_model.players[self.game.game_model.my_id] = 0
+            self.game.game_model.init()
             self.game.game_model.messages.clear()
             self.game.game_model.add_message('Dev game preview')
+            self.game.refresh_layout()
         Clock.schedule_once(self.save_screenshot, self.dev_args.exit_after)
 
     def save_screenshot(self, _interval):
