@@ -110,8 +110,8 @@ class LogoView(Widget):
     def __init__(self, texture, **kwargs):
         super().__init__(**kwargs)
         self.texture = texture
-        self.size_hint = (1, 0)
-        self.size_hint_min_y = 320
+        self.size_hint = (1, None)
+        self.height = 420
 
     def show(self):
         self.canvas.clear()
@@ -190,6 +190,8 @@ class Game(BoxLayout):
             font_size='24sp',
             bold=True,
             **row_args)
+        self.menu_top_spacer = Widget(size_hint=(1, .55))
+        self.menu_bottom_spacer = Widget(size_hint=(1, 1))
         self.logo_view = LogoView(self.logo_texture)
         self.connecting_view = ConnectingView()
 
@@ -283,14 +285,22 @@ class Game(BoxLayout):
         self.add_widget(self.info_pane)
 
         if screen == 'menu':
+            self.info_pane.add_widget(self.menu_top_spacer)
+            self.info_pane.add_widget(self.logo_view)
+        elif screen == 'setup':
             self.info_pane.add_widget(self.logo_view)
         elif not env.is_mobile and screen != 'game':
             self.info_pane.add_widget(self.title_label)
         if screen == 'menu':
+            self.button_pane.size_hint = (1, None)
+            self.button_pane.height = 160
+            self.label.size_hint = (1, None)
             self.info_pane.add_widget(self.button_pane)
             self.info_pane.add_widget(self.label)
+            self.info_pane.add_widget(self.menu_bottom_spacer)
             self.text_input.focus = False
         else:
+            self.label.size_hint = (1, 1)
             self.info_pane.add_widget(self.menu_button)
             if screen == 'game':
                 if self.orientation == 'horizontal':
@@ -385,8 +395,14 @@ class Game(BoxLayout):
         if self.screen() != 'game':
             self.info_pane.size_hint = (1, 1)
             self.button_pane.orientation = 'vertical'
-            self.button_pane.size_hint = (1, .35)
-            self.button_pane.size_hint_min_y = 140
+            if self.screen() == 'menu':
+                self.logo_view.height = 840 if self.height > self.width else 620
+                self.button_pane.size_hint = (1, None)
+                self.button_pane.height = 160
+            else:
+                self.logo_view.height = 360 if self.height > self.width else 260
+                self.button_pane.size_hint = (1, .35)
+                self.button_pane.size_hint_min_y = 140
             self.draw_background(self.screen())
             return
 
