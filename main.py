@@ -64,7 +64,7 @@ class RecentMovesView(Widget):
         super().__init__(**kwargs)
         self.game = game
         self.size_hint = (1, 0)
-        self.size_hint_min_y = 112
+        self.size_hint_min_y = 150
 
     def show(self):
         pieces = [
@@ -72,24 +72,22 @@ class RecentMovesView(Widget):
             if piece.last_move_time is not None
         ]
         pieces.sort(key=lambda piece: piece.last_move_time, reverse=True)
-        pieces = pieces[:6]
+        pieces = pieces[:4]
 
         self.canvas.clear()
-        if not pieces:
-            return
-
         with self.canvas:
-            label = CoreLabel(text='LAST MOVED', font_size=20, color=GOLD_COLOR)
+            label = CoreLabel(text='LAST MOVED', font_size=24, color=GOLD_COLOR)
             label.refresh()
-            pad = 14
+            pad = 10
             gap = 8
-            icon = max(32, min(58, (self.width - pad * 2) / len(pieces) - gap))
-            width = len(pieces) * icon + (len(pieces) - 1) * gap
-            x = self.x + max(pad, (self.width - width) / 2)
-            y = self.y + 14
+            icon = 88
+            x = self.x + pad
+            y = self.y + 18
 
             Color(*MUTED_TEXT_COLOR)
             Rectangle(texture=label.texture, pos=(x, y + icon + 6), size=label.texture.size)
+            if not pieces:
+                return
 
             for piece in pieces:
                 remaining = max(
@@ -99,12 +97,12 @@ class RecentMovesView(Widget):
                 total = max(piece.freeze_time, self.game.player_freeze_time, 1)
                 ratio = max(0, min(1, remaining / total))
 
-                Color(.06, .08, .08, .9)
-                Rectangle(pos=(x - 4, y - 8), size=(icon + 8, icon + 14))
+                Color(.38, .42, .40, .82)
+                Rectangle(pos=(x - 5, y - 10), size=(icon + 10, icon + 18))
                 Color(.92, .90, .84, 1)
                 Rectangle(texture=piece.image(), pos=(x, y), size=(icon, icon))
                 Color(.18, .55, .50, 1)
-                Rectangle(pos=(x, y - 8), size=(icon * ratio, 5))
+                Rectangle(pos=(x, y - 10), size=(icon * ratio, 7))
                 x += icon + gap
 
 class LogoView(Widget):
@@ -440,7 +438,7 @@ class Game(BoxLayout):
             self.info_pane.size_hint = (1, p)
             self.board_view.size_hint = (1, 1 / self.game_model.num_boards)
             self.recent_moves_view.size_hint = (1, 0)
-            self.recent_moves_view.size_hint_min_y = 112
+            self.recent_moves_view.size_hint_min_y = 150
             self.button_pane.orientation = 'horizontal'
             self.button_pane.size_hint = (1, .4)
             self.button_pane.size_hint_min_y = 70
