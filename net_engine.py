@@ -173,14 +173,6 @@ class NetEngine:
         candidates = [format_addr(addr) for addr in self.my_addrs]
         url = MATCH_SERVER + '/register3/chesschase0/%s/' % quote_path(json.dumps(candidates, separators=(',', ':')))
         print('registering at %s' % url)
-        try:
-            return urlopen(url).read().decode('utf-8')
-        except urllib.error.HTTPError as err:
-            if err.code != 404:
-                raise
-        url = MATCH_SERVER + '/register2/chesschase0/%s/%d/%s/' % (
-            quote_path(self.my_addr[0]), self.my_addr[1], quote_path(self.local_addr[0]))
-        print('registering at %s' % url)
         return urlopen(url).read().decode('utf-8')
 
     def wait_for_connections(self):

@@ -4,6 +4,7 @@ import unittest
 import marshal
 import time
 import urllib.error
+import urllib.parse
 from unittest import mock
 
 from game_model import GameModel
@@ -52,6 +53,29 @@ class TestSync(unittest.TestCase):
         self.assertIn('Trying direct UDP communication...', engine.game.messages)
         self.assertIn('Your address is still: ROOM WORDS', engine.game.messages)
         self.assertNotIn('Direct UDP communication established!', engine.game.messages)
+
+    def test_register3_preserves_local_candidate_port(self):
+        class Response:
+            def read(self):
+                return b'room words'
+
+        urls = []
+        engine = NetEngine(GameModel())
+        engine.my_addr = ('203.0.113.1', 1234)
+        engine.local_addr = ('192.168.1.10', 4321)
+        engine.my_addrs = [engine.my_addr, engine.local_addr]
+
+        def fake_urlopen(url):
+            urls.append(url)
+            return Response()
+
+        with mock.patch('net_engine.urlopen', fake_urlopen):
+            self.assertEqual(engine.register_addrs(), 'room words')
+
+        self.assertIn('/register3/', urls[0])
+        self.assertNotIn('/register2/', urls[0])
+        candidates = urllib.parse.unquote(urls[0].rstrip('/').rsplit('/', 1)[1])
+        self.assertEqual(candidates, '["203.0.113.1:1234","192.168.1.10:4321"]')
 
     def test_udp_success_message_waits_for_packet(self):
         engine = NetEngine(GameModel())
