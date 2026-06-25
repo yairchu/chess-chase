@@ -8,7 +8,11 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('chess-chase-pieces.png', '.')],
+    datas=[
+        ('chess-chase-pieces.png', '.'),
+        ('background.jpg', '.'),
+        ('logo.png', '.'),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
