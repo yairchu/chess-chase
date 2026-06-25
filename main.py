@@ -390,7 +390,7 @@ class Game(BoxLayout):
             'Each piece has its own color, and the board is painted to show where it can move.',
             'You only see where your pieces can move',
             'You will also see any piece that threatens the king.',
-            'Note that unlike classic chess, the king can move to a threatened position!',
+            'The king can sense danger, so moves that leave it threatened are blocked.',
             'There are no turns!',
             'There are cool-downs (rate limits) instead.',
             'You win the game by capturing the opponent king',

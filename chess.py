@@ -66,15 +66,23 @@ class Piece:
         self.game.player_last_move[self.player] = self.game.counter
 
     def moves(self):
-        freeze_time = self.game.player_freeze_time
-        if self.game.counter < max(
-                self.freeze_until,
-                self.game.player_last_move.get(self.player, -freeze_time) + freeze_time):
+        if not self.can_move_now():
             return
-        yield from self.base_moves()
+        for dst in self.base_moves():
+            if self.game.threatening_piece_after_move(self, dst) is None:
+                yield dst
+
+    def can_move_now(self):
+        freeze_time = self.game.player_freeze_time
+        return self.game.counter >= max(
+            self.freeze_until,
+            self.game.player_last_move.get(self.player, -freeze_time) + freeze_time)
 
     def sight(self):
         'What squares can this piece see (overridden for Pawn)'
+        yield from self.base_moves()
+
+    def attacks(self):
         yield from self.base_moves()
 
     def base_moves(self):
@@ -142,6 +150,8 @@ class King(Piece):
         (sx, sy) = self.pos
         if abs(x - sx) <= 1:
             return super(King, self).move(pos)
+        if pos not in self.moves():
+            return False
         # Castling
         assert y == sy
         dir = 1 if x > sx else -1
@@ -162,6 +172,13 @@ class King(Piece):
         for dir in [-1, 1]:
             if self.castling(x, y, dir):
                 yield [(x+dir*2, y)]
+
+    def attacks(self):
+        x, y = self.pos
+        for a in range(x-1, x+2):
+            for b in range(y-1, y+2):
+                if (a, b) != (x, y) and self.game.in_bounds((a, b)):
+                    yield a, b
 
     def castling(self, x, y, dir):
         dest = x+dir
@@ -206,6 +223,14 @@ class Pawn(Piece):
                 yield dst
         for piece in self.en_passant(x, y):
             yield piece.pos
+
+    def attacks(self):
+        delta = -1 if self.side() else 1
+        x, y = self.pos
+        for a in [x-1, x+1]:
+            dst = a, y+delta
+            if self.game.in_bounds(dst):
+                yield dst
 
     def _moves(self, x, y):
         start_row, delta = (6, -1) if self.side() else (1, 1)

@@ -105,13 +105,21 @@ class BoardView(Widget):
 
         movesee = {}
         see = set()
-        for piece in self.game.board.values():
+        for piece in list(self.game.board.values()):
             if player is not None and piece.side() != player%2:
                 continue
             see.add(piece.pos)
             moves = set()
             if self.can_control(piece):
                 moves = set(piece.moves())
+                if piece.can_move_now():
+                    for dst in piece.base_moves():
+                        if dst in moves:
+                            continue
+                        threat = self.game.threatening_piece_after_move(piece, dst)
+                        if threat is not None:
+                            see.add(threat.pos)
+                            movesee[threat.pos] = threat.sight_color
                 if self.mouse_pos in moves and not self.is_dragging and piece == self.selected:
                     flash[piece.pos] = piece.sight_color
                 else:
@@ -195,7 +203,7 @@ class BoardView(Widget):
             return
         self.is_dragging = False
         self.potential_pieces = []
-        for piece in self.game.board.values():
+        for piece in list(self.game.board.values()):
             if self.can_control(piece) and self.mouse_pos in piece.moves():
                 self.potential_pieces.append(piece)
         self.potential_pieces.sort(key = lambda x: x.move_preference)

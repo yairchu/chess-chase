@@ -6,6 +6,7 @@ import time
 
 from game_model import GameModel
 from net_engine import NetEngine, format_addr, parse_addr
+import chess
 
 class GameInstance:
     def __init__(self):
@@ -87,6 +88,35 @@ class TestSync(unittest.TestCase):
         game.player_last_move = {black_pawn.player: 10}
 
         list(white_pawn.sight())
+
+    def test_king_cannot_move_into_threat(self):
+        game = GameModel()
+        game.init()
+        game.board = {}
+        king = chess.King(0, (3, 0), game)
+        chess.Rook(1, (4, 7), game)
+
+        self.assertNotIn((4, 0), list(king.moves()))
+
+    def test_piece_cannot_expose_king(self):
+        game = GameModel()
+        game.init()
+        game.board = {}
+        chess.King(0, (4, 0), game)
+        rook = chess.Rook(0, (4, 1), game)
+        chess.Rook(1, (4, 7), game)
+
+        self.assertNotIn((5, 1), list(rook.moves()))
+        self.assertIn((4, 2), list(rook.moves()))
+
+    def test_pawns_do_not_threaten_forward(self):
+        game = GameModel()
+        game.init()
+        game.board = {}
+        chess.King(0, (4, 3), game)
+        chess.Pawn(1, (4, 4), game)
+
+        self.assertIsNone(game.threatening_piece(0, (4, 3)))
 
     def test_sync(self):
         instances = [GameInstance() for _ in range(2)]

@@ -62,6 +62,41 @@ class GameModel:
                 return False
         return True
 
+    def king(self, player):
+        for piece in self.board.values():
+            if piece.player == player and isinstance(piece, chess.King):
+                return piece
+
+    def threatening_piece(self, player, king_pos):
+        for piece in self.board.values():
+            if piece.side() != player % 2 and king_pos in piece.attacks():
+                return piece
+
+    def threatening_piece_after_move(self, piece, dst):
+        src = piece.pos
+        captured = self.board.get(dst)
+        en_passant_pos = None
+        en_passant_piece = None
+        if isinstance(piece, chess.Pawn) and captured is None and dst[0] != src[0]:
+            en_passant_pos = dst[0], src[1]
+            en_passant_piece = self.board.get(en_passant_pos)
+
+        del self.board[src]
+        piece.pos = dst
+        self.board[dst] = piece
+        if en_passant_piece is not None:
+            del self.board[en_passant_pos]
+        king = piece if isinstance(piece, chess.King) else self.king(piece.player)
+        threat = self.threatening_piece(piece.player, king.pos) if king is not None else None
+        del self.board[dst]
+        piece.pos = src
+        self.board[src] = piece
+        if captured is not None:
+            self.board[dst] = captured
+        if en_passant_piece is not None:
+            self.board[en_passant_pos] = en_passant_piece
+        return threat
+
     def add_action(self, act_type, *params):
         'Queue an action to be executed'
         self.cur_actions.append((act_type, params))
