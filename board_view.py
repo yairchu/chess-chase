@@ -30,11 +30,7 @@ class BoardView(Widget):
         self.resized()
 
     def piece_rect(self, piece, pos):
-        sx, sy = self.screen_pos(pos)
-        image_w, image_h = piece.image().size
-        scale = self.square_size * 1.7 / piece.image_scale_height
-        width, height = image_w * scale, image_h * scale
-        return (sx + 3 + (self.square_size - width) / 2, sy + self.square_size * .12), (width, height)
+        return piece.image_rect(self.square_size, self.screen_pos(pos))
 
     def draw_piece(self, piece, pos):
         piece_pos, piece_size = self.piece_rect(piece, pos)

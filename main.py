@@ -99,8 +99,12 @@ class RecentMovesView(Widget):
 
                 Color(.38, .42, .40, .82)
                 Rectangle(pos=(x - 5, y - 10), size=(icon + 10, icon + 18))
+                piece_pos, piece_size = piece.image_rect(icon, (x, y))
                 Color(.92, .90, .84, 1)
-                Rectangle(texture=piece.image(), pos=(x, y), size=(icon, icon))
+                Rectangle(
+                    texture=piece.image(),
+                    pos=piece_pos,
+                    size=piece_size)
                 Color(.18, .55, .50, 1)
                 Rectangle(pos=(x, y - 10), size=(icon * ratio, 7))
                 x += icon + gap

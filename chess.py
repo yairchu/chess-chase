@@ -26,6 +26,13 @@ class Piece:
         'Get image for piece'
         return self._images[self.player]
 
+    def image_rect(self, square_size, pos):
+        image_w, image_h = self.image().size
+        scale = square_size * 1.7 / self.image_scale_height
+        width, height = image_w * scale, image_h * scale
+        x, y = pos
+        return (x + 3 + (square_size - width) / 2, y + square_size * .12), (width, height)
+
     def side(self):
         return self.player % 2
 
