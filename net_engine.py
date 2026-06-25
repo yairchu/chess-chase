@@ -35,7 +35,7 @@ def urlopen(url):
 def quote_path(value):
     return urllib.parse.quote(value, safe='')
 
-def get_lan_ipv4():
+def get_lan_ip():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         sock.connect(('8.8.8.8', 80))
@@ -45,24 +45,7 @@ def get_lan_ipv4():
     finally:
         sock.close()
 
-def get_lan_ipv6():
-    sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-    try:
-        sock.connect(('2001:4860:4860::8888', 80))
-        return sock.getsockname()[0]
-    except OSError:
-        return None
-    finally:
-        sock.close()
-
-def format_addr(addr):
-    host, port = addr
-    return '[%s]:%d' % (host, port) if ':' in host else '%s:%d' % (host, port)
-
 def parse_addr(value):
-    if value.startswith('['):
-        host, port_str = value[1:].rsplit(']:', 1)
-        return host, int(port_str)
     host, port_str = value.rsplit(':', 1)
     return host, int(port_str)
 
@@ -83,8 +66,6 @@ class NetEngine:
         self.address = None
         self.last_comm_time = None
         self.had_peer_packet = False
-        self.my_addrs = []
-        self.sockets = []
         self.comm_gap_msg_at = 10
         self.should_start_replay = False
         self.iter_actions = {}
@@ -121,30 +102,14 @@ class NetEngine:
                         print('retrying stun connection')
                         continue
                     self.my_addr = (gamehost, gameport)
-                    self.local_addr = (get_lan_ipv4(), local_port)
-                    self.local_ipv6_addr = None
-                    self.game.add_message('Public UDP address: %s' % format_addr(self.my_addr))
-                    self.game.add_message('Local UDP address: %s' % format_addr(self.local_addr))
-                    print('external host %s' % format_addr(self.my_addr))
+                    self.local_addr = (get_lan_ip(), local_port)
+                    self.game.add_message('Public UDP address: %s:%d' % self.my_addr)
+                    self.game.add_message('Local UDP address: %s:%d' % self.local_addr)
+                    print('external host %s:%d' % self.my_addr)
                     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     sock.bind(('', local_port))
                     print('listening on port %d' % local_port)
                     self.socket = sock
-                    self.sockets = [sock]
-                    ipv6 = get_lan_ipv6()
-                    if ipv6:
-                        try:
-                            sock6 = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-                            sock6.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
-                            sock6.bind(('::', local_port))
-                            self.local_ipv6_addr = (ipv6, local_port)
-                            self.sockets.append(sock6)
-                            self.game.add_message('Local IPv6 UDP address: %s' % format_addr(self.local_ipv6_addr))
-                        except OSError as err:
-                            print('IPv6 UDP unavailable: %s' % err)
-                    self.my_addrs = [self.my_addr, self.local_addr]
-                    if self.local_ipv6_addr:
-                        self.my_addrs.append(self.local_ipv6_addr)
                     return True
                 except socket.error as err:
                     self.game.add_message('Network setup failed; retrying: %s' % err)
@@ -153,9 +118,12 @@ class NetEngine:
             self.game.add_message('STUN failed; retrying...')
 
     def setup_addr_name(self):
+        url = MATCH_SERVER + '/register2/chesschase0/%s/%d/%s/' % (
+            self.my_addr[0], self.my_addr[1], self.local_addr[0])
         self.game.add_message('Registering with match server...')
+        print('registering at %s' % url)
         try:
-            self.address = self.register_addrs()
+            self.address = urlopen(url).read().decode('utf-8')
         except urllib.error.HTTPError as err:
             self.game.add_message('Match server rejected registration: HTTP %d' % err.code)
             return False
@@ -168,12 +136,6 @@ class NetEngine:
         self.game.add_message('')
         self.game.add_message('Type the address of a friend to play with them')
         return True
-
-    def register_addrs(self):
-        candidates = [format_addr(addr) for addr in self.my_addrs]
-        url = MATCH_SERVER + '/register3/chesschase0/%s/' % quote_path(json.dumps(candidates, separators=(',', ':')))
-        print('registering at %s' % url)
-        return urlopen(url).read().decode('utf-8')
 
     def wait_for_connections(self):
         while not self.peers:
@@ -229,7 +191,7 @@ class NetEngine:
     def add_peers_json(self, peers_json):
         for addresses in json.loads(peers_json):
             peer = [parse_addr(address) for address in addresses]
-            if any(address in self.own_addrs() for address in peer):
+            if any(address in [self.my_addr, self.local_addr] for address in peer):
                 continue
             if peer in self.peers:
                 continue
@@ -257,32 +219,28 @@ class NetEngine:
                     self.game.counter+self.latency)]))
         for peer in self.peers:
             for address in peer:
-                sock = self.socket_for(address)
-                if sock is None:
-                    continue
                 try:
-                    sock.sendto(packet, 0, self.socket_addr(address))
+                    self.socket.sendto(packet, 0, address)
                 except OSError as err:
-                    print('failed sending to %s: %s' % (format_addr(address), err))
-        for sock in self.sockets or [self.socket]:
-            while poll(sock):
-                self.last_comm_time = time.time()
-                packet, peer = sock.recvfrom(0x1000)
-                if not self.had_peer_packet:
-                    self.had_peer_packet = True
-                    self.game.mode = 'play'
-                    self.game.init()
-                    self.game.messages.clear()
-                    self.game.add_message('')
-                    self.game.add_message('Direct UDP communication established!')
-                    self.game.add_message('THE GAME BEGINS!')
-                peer_id, peer_iter_actions = marshal.loads(packet)
-                for i, actions in peer_iter_actions:
-                    acts = self.iter_actions.setdefault(i, {})
-                    if peer_id in acts:
-                        assert acts[peer_id] == actions, '%s %s' % (acts[peer_id], actions)
-                    else:
-                        acts[peer_id] = actions
+                    print('failed sending to %s:%d: %s' % (address + (err, )))
+        while poll(self.socket):
+            self.last_comm_time = time.time()
+            packet, peer = self.socket.recvfrom(0x1000)
+            if not self.had_peer_packet:
+                self.had_peer_packet = True
+                self.game.mode = 'play'
+                self.game.init()
+                self.game.messages.clear()
+                self.game.add_message('')
+                self.game.add_message('Direct UDP communication established!')
+                self.game.add_message('THE GAME BEGINS!')
+            peer_id, peer_iter_actions = marshal.loads(packet)
+            for i, actions in peer_iter_actions:
+                acts = self.iter_actions.setdefault(i, {})
+                if peer_id in acts:
+                    assert acts[peer_id] == actions, '%s %s' % (acts[peer_id], actions)
+                else:
+                    acts[peer_id] = actions
 
         if self.last_comm_time is None:
             return
@@ -295,21 +253,6 @@ class NetEngine:
             self.comm_gap_msg_at += 5
         elif time_since_comm < 5:
             self.comm_gap_msg_at = 5
-
-    def socket_for(self, address):
-        host, _port = address
-        if ':' in host:
-            return self.sockets[1] if len(self.sockets) > 1 else None
-        return self.socket
-
-    def socket_addr(self, address):
-        host, port = address
-        return (host, port, 0, 0) if ':' in host else address
-
-    def own_addrs(self):
-        if self.my_addrs:
-            return self.my_addrs
-        return [addr for addr in [getattr(self, 'my_addr', None), getattr(self, 'local_addr', None)] if addr]
 
     def get_replay_actions(self):
         return sorted(self.iter_actions.get(self.game.counter, {}).items())
