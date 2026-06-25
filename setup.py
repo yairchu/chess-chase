@@ -7,7 +7,7 @@ OPTIONS = {
 setup(
     name='Chess Chase',
     app=['main.py'],
-    data_files=['chess.png'],
+    data_files=['chess-chase-pieces.png'],
     options={'py2app': OPTIONS},
     setup_requires=['py2app'],
 )

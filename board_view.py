@@ -9,6 +9,8 @@ from kivy.uix.widget import Widget
 import env
 
 class BoardView(Widget):
+    top_margin_squares = .2
+
     def __init__(self, game, **kwargs):
         super(BoardView, self).__init__(**kwargs)
         self.game = game
@@ -18,12 +20,25 @@ class BoardView(Widget):
         self.reset()
 
     def resized(self, *args):
-        self.square_size = min(p / s for p, s in zip(self.size, self.game.board_size))
+        self.square_size = min(
+            self.width / self.game.board_size[0],
+            self.height / (self.game.board_size[1] + self.top_margin_squares))
 
     def reset(self):
         self.selected = None
         self.is_dragging = False
         self.resized()
+
+    def piece_rect(self, piece, pos):
+        sx, sy = self.screen_pos(pos)
+        image_w, image_h = piece.image().size
+        scale = self.square_size * 1.24 / piece.image_scale_height
+        width, height = image_w * scale, image_h * scale
+        return (sx + (self.square_size - width) / 2, sy + self.square_size * .07), (width, height)
+
+    def draw_piece(self, piece, pos):
+        piece_pos, piece_size = self.piece_rect(piece, pos)
+        Rectangle(texture=piece.image(), pos=piece_pos, size=piece_size)
 
     def show_board(self):
         cols, see = self.board_info()
@@ -50,7 +65,7 @@ class BoardView(Widget):
                         Color(.90, .73, .38, .72)
                         Rectangle(pos=(sx, sy), size=((self.square_size-1) * freeze_ratio, self.square_size-1))
 
-            for pos, piece in self.game.board.items():
+            for pos, piece in sorted(self.game.board.items(), key=lambda item: -item[0][1]):
                 if pos not in see:
                     continue
                 transparent = False
@@ -59,34 +74,29 @@ class BoardView(Widget):
                     if move_time < 1:
                         pos_between = move_time
                         if piece.last_pos is not None:
-                            last_screen_pos = self.screen_pos(piece.last_pos)
-                            new_screen_pos = self.screen_pos(pos)
+                            last_pos, _ = self.piece_rect(piece, piece.last_pos)
+                            new_pos, piece_size = self.piece_rect(piece, pos)
                             Rectangle(
                                 texture=piece.image(),
-                                pos=[int(last_screen_pos[i]+(new_screen_pos[i]-last_screen_pos[i])*pos_between) for i in range(2)],
-                                size=sq)
+                                pos=[int(last_pos[i]+(new_pos[i]-last_pos[i])*pos_between) for i in range(2)],
+                                size=piece_size)
                 if piece is self.selected and self.game.active():
                     transparent = True
                 Color(1, 1, 1, .5 if transparent else 1)
-                Rectangle(
-                    texture=piece.image(),
-                    pos=self.screen_pos(pos),
-                    size=sq)
+                self.draw_piece(piece, pos)
 
             if self.selected is not None and self.dst_pos is not None and self.game.active():
                 Color(1, 1, 1, .5)
-                Rectangle(
-                    texture=self.selected.image(),
-                    pos=self.screen_pos(self.dst_pos),
-                    size=sq)
+                self.draw_piece(self.selected, self.dst_pos)
 
             if self.is_dragging:
                 x, y = self.raw_mouse_pos
+                _, piece_size = self.piece_rect(self.selected, self.selected.pos)
                 Color(1, 1, 1, .5)
                 Rectangle(
                     texture=self.selected.image(),
-                    pos=(x-self.square_size//2, y-self.square_size//2),
-                    size=sq)
+                    pos=(x - piece_size[0] / 2, y - piece_size[1] / 2),
+                    size=piece_size)
 
     def board_info(self):
         player = None if self.game.mode in ['demo', 'replay'] else self.game.player()

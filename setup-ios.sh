@@ -65,7 +65,7 @@ uv sync
 
 rm -rf "$app_dir"
 mkdir -p "$app_dir"
-cp main.py board_view.py chess.py chess.png env.py game_model.py net_engine.py ssl_certs.py widgets.py "$app_dir"
+cp main.py board_view.py chess.py chess-chase-pieces.png env.py game_model.py net_engine.py ssl_certs.py widgets.py "$app_dir"
 stun_dir=$(uv run python -c 'import pathlib, stun; print(pathlib.Path(stun.__file__).parent)')
 cp -R "$stun_dir" "$app_dir/stun"
 certifi_dir=$(uv run python -c 'import certifi, pathlib; print(pathlib.Path(certifi.__file__).parent)')

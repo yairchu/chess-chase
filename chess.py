@@ -239,11 +239,33 @@ class Pawn(Piece):
 
 first_row = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
 
-pieces_image = Image(source=os.path.join(ROOT, 'chess.png')).texture
-S = pieces_image.size[1]/2
+pieces_image = Image(source=os.path.join(ROOT, 'chess-chase-pieces.png')).texture
+image_h = pieces_image.size[1]
+black_regions = [
+    (56, 29, 141, 203),
+    (143, 29, 236, 205),
+    (247, 30, 325, 203),
+    (337, 43, 421, 204),
+    (446, 57, 528, 203),
+    (542, 86, 614, 205),
+]
+white_regions = [
+    (53, 226, 135, 391),
+    (149, 225, 233, 426),
+    (247, 224, 322, 392),
+    (338, 232, 423, 393),
+    (445, 240, 530, 392),
+    (545, 268, 618, 392),
+]
+
+def region(bounds):
+    x0, y0, x1, y1 = bounds
+    return pieces_image.get_region(x0, image_h - y1, x1 - x0, y1 - y0)
+
+Piece.image_scale_height = max(y1 - y0 for x0, y0, x1, y1 in black_regions + white_regions)
 
 for x, piece in enumerate([King, Queen, Bishop, Knight, Rook, Pawn]):
-    piece._images = [pieces_image.get_region(S*x, S*y, S, S) for y in range(2)][::-1]
+    piece._images = [region(white_regions[x]), region(black_regions[x])]
 
 for preference, piece in enumerate([King, Pawn, Knight, Bishop, Rook, Queen]):
     piece.move_preference = preference
