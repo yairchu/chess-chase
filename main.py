@@ -32,6 +32,7 @@ from kivy.core.text import Label as CoreLabel
 from kivy.core.window import Window
 from kivy.graphics import Color, Ellipse, Line, Rectangle
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 from kivy.uix.widget import Widget
 
@@ -64,7 +65,7 @@ class RecentMovesView(Widget):
         super().__init__(**kwargs)
         self.game = game
         self.size_hint = (1, 0)
-        self.size_hint_min_y = 150
+        self.size_hint_min_y = 186
 
     def show(self):
         pieces = [
@@ -233,8 +234,14 @@ class Game(BoxLayout):
             halign='center',
             valign='middle',
             color=TEXT_COLOR,
-            font_size='21sp')
-        self.info_pane.add_widget(self.label)
+            font_size='18sp',
+            size_hint=(1, None))
+        self.message_view = ScrollView(
+            size_hint=(1, 1),
+            do_scroll_x=False,
+            bar_width=0)
+        self.message_view.add_widget(self.label)
+        self.info_pane.add_widget(self.message_view)
 
         self.text_input = TextInput(
             multiline=False,
@@ -310,13 +317,11 @@ class Game(BoxLayout):
         if screen == 'menu':
             self.button_pane.size_hint = (1, None)
             self.button_pane.height = 160
-            self.label.size_hint = (1, None)
             self.info_pane.add_widget(self.button_pane)
-            self.info_pane.add_widget(self.label)
+            self.info_pane.add_widget(self.message_view)
             self.info_pane.add_widget(self.menu_bottom_spacer)
             self.text_input.focus = False
         else:
-            self.label.size_hint = (1, 1)
             self.info_pane.add_widget(self.menu_button)
             if screen == 'game':
                 if self.orientation == 'horizontal':
@@ -324,7 +329,7 @@ class Game(BoxLayout):
                 self.info_pane.add_widget(self.score_label)
             elif screen == 'setup':
                 self.info_pane.add_widget(self.connecting_view)
-            self.info_pane.add_widget(self.label)
+            self.info_pane.add_widget(self.message_view)
             if self.game_model.mode != 'tutorial':
                 self.info_pane.add_widget(self.text_input)
             else:
@@ -410,6 +415,7 @@ class Game(BoxLayout):
             self.label.text = self.game_model.messages[-1] if self.game_model.messages else ''
         else:
             self.label.text = '\n'.join(self.game_model.messages[-num_msg_lines:])
+        self.message_view.scroll_y = 0
 
     def resized(self, *args):
         if self.screen() != 'game':
@@ -435,6 +441,8 @@ class Game(BoxLayout):
         if self.orientation == 'horizontal':
             self.info_pane.size_hint = (p, 1)
             self.board_view.size_hint = (self.game_model.num_boards, 1)
+            self.recent_moves_view.size_hint = (1, 0)
+            self.recent_moves_view.size_hint_min_y = 186
             self.button_pane.orientation = 'vertical'
             self.button_pane.size_hint = (1, .4)
             self.button_pane.size_hint_min_y = 140
@@ -442,7 +450,7 @@ class Game(BoxLayout):
             self.info_pane.size_hint = (1, p)
             self.board_view.size_hint = (1, 1 / self.game_model.num_boards)
             self.recent_moves_view.size_hint = (1, 0)
-            self.recent_moves_view.size_hint_min_y = 150
+            self.recent_moves_view.size_hint_min_y = 186
             self.button_pane.orientation = 'horizontal'
             self.button_pane.size_hint = (1, .4)
             self.button_pane.size_hint_min_y = 70
