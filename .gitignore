@@ -12,3 +12,4 @@ chesschase-mac-v*.zip
 /*.app/
 /ChessChase-ios/
 /screenshots/ui/*.png
+.vscode/

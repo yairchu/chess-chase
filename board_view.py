@@ -9,7 +9,7 @@ from kivy.uix.widget import Widget
 import env
 
 class BoardView(Widget):
-    top_margin_squares = .2
+    top_margin_squares = .75
 
     def __init__(self, game, **kwargs):
         super(BoardView, self).__init__(**kwargs)
@@ -32,9 +32,9 @@ class BoardView(Widget):
     def piece_rect(self, piece, pos):
         sx, sy = self.screen_pos(pos)
         image_w, image_h = piece.image().size
-        scale = self.square_size * 1.24 / piece.image_scale_height
+        scale = self.square_size * 1.7 / piece.image_scale_height
         width, height = image_w * scale, image_h * scale
-        return (sx + (self.square_size - width) / 2, sy + self.square_size * .07), (width, height)
+        return (sx + 3 + (self.square_size - width) / 2, sy + self.square_size * .12), (width, height)
 
     def draw_piece(self, piece, pos):
         piece_pos, piece_size = self.piece_rect(piece, pos)
