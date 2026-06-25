@@ -83,7 +83,6 @@ class GameModel:
             return
         piece = self.board[src]
         if piece.move(dst):
-            self.add_message('%s %s moved' % (self.player_str(piece.player), type(piece).__name__.lower()))
             if self.mode == 'tutorial' and self.tutorial_messages:
                 self.add_message('')
                 self.add_message(self.tutorial_messages.pop(0))
