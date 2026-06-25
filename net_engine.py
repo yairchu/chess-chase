@@ -216,6 +216,8 @@ class NetEngine:
         except urllib.error.HTTPError as err:
             if err.code == 404:
                 self.game.add_message('No such game: %s' % addr)
+            elif err.code == 500:
+                self.lookup_connected_room(addr)
             else:
                 self.game.add_message('Server error when looking up game: %s' % addr)
             return
@@ -223,6 +225,14 @@ class NetEngine:
             self.game.add_message('Match server connection failed: %s' % err)
             return
         self.add_peers_json(response.decode('utf-8'))
+
+    def lookup_connected_room(self, addr):
+        url = MATCH_SERVER + '/lookup2/chesschase0/%s/' % quote_path(addr.lower())
+        print('looking up already-connected host at %s' % url)
+        try:
+            self.add_peers_json(urlopen(url).read().decode('utf-8'))
+        except Exception as err:
+            self.game.add_message('Match server connection failed: %s' % err)
 
     def add_peers_json(self, peers_json):
         for addresses in json.loads(peers_json):
@@ -240,8 +250,6 @@ class NetEngine:
             self.game.add_message('Trying direct UDP communication...')
             if self.address:
                 self.game.add_message('Your address is still: %s' % self.address.upper())
-            self.game.mode = 'play'
-            self.game.init()
             self.last_comm_time = time.time()
             self.comm_gap_msg_at = 10
 
@@ -270,6 +278,8 @@ class NetEngine:
                 packet, peer = sock.recvfrom(0x1000)
                 if not self.had_peer_packet:
                     self.had_peer_packet = True
+                    self.game.mode = 'play'
+                    self.game.init()
                     self.game.messages.clear()
                     self.game.add_message('')
                     self.game.add_message('Direct UDP communication established!')

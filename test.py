@@ -3,6 +3,8 @@ import socket
 import unittest
 import marshal
 import time
+import urllib.error
+from unittest import mock
 
 from game_model import GameModel
 from net_engine import NetEngine, format_addr, parse_addr
@@ -69,6 +71,53 @@ class TestSync(unittest.TestCase):
             time.sleep(0.01)
 
         self.assertIn('Direct UDP communication established!', engine.game.messages)
+
+    def test_game_starts_after_direct_udp_packet(self):
+        engine = NetEngine(GameModel())
+        engine.game.mode = 'connect'
+        engine.my_addr = ('203.0.113.1', 1234)
+        engine.local_addr = ('192.168.1.10', 1234)
+        engine.add_peers_json('[["203.0.113.2:5678"]]')
+
+        self.assertEqual(engine.game.mode, 'connect')
+
+        engine.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.addCleanup(engine.socket.close)
+        engine.socket.bind(('127.0.0.1', 0))
+
+        sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.addCleanup(sender.close)
+        sender.sendto(marshal.dumps((123, [])), engine.socket.getsockname())
+        engine.communicate()
+
+        self.assertEqual(engine.game.mode, 'play')
+        self.assertIn('Direct UDP communication established!', engine.game.messages)
+
+    def test_connect_falls_back_to_lookup_when_room_already_joined(self):
+        class Response:
+            def __init__(self, body):
+                self.body = body.encode('utf-8')
+
+            def read(self):
+                return self.body
+
+        engine = NetEngine(GameModel())
+        engine.address = 'my room'
+        engine.my_addr = ('203.0.113.1', 1234)
+        engine.local_addr = ('192.168.1.10', 1234)
+
+        def fake_urlopen(url):
+            if '/connect2/' in url:
+                raise urllib.error.HTTPError(url, 500, 'AssertionError', {}, None)
+            if '/lookup2/' in url:
+                return Response('[["203.0.113.2:5678"]]')
+            raise AssertionError(url)
+
+        with mock.patch('net_engine.urlopen', fake_urlopen):
+            engine.connect_thread_go('their room')
+
+        self.assertEqual(engine.peers, [[('203.0.113.2', 5678)]])
+        self.assertIn('Trying direct UDP communication...', engine.game.messages)
 
     def test_stopped_connect_thread_exits_before_address_registration(self):
         engine = NetEngine(GameModel())
