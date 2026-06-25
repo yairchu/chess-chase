@@ -61,7 +61,7 @@ class BoardView(Widget):
                         Color(.90, .73, .38, .72)
                         Rectangle(pos=(sx, sy), size=((self.square_size-1) * freeze_ratio, self.square_size-1))
 
-            for pos, piece in sorted(self.game.board.items(), key=lambda item: -item[0][1]):
+            for pos, piece in sorted(self.game.board.items(), key=lambda item: -self.screen_pos(item[0])[1]):
                 if pos not in see:
                     continue
                 transparent = False
