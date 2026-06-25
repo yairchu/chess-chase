@@ -404,7 +404,10 @@ class Game(BoxLayout):
 
     def update_label(self):
         self.score_label.text = 'SCORE\nWhite: %d   Black: %d' % tuple(self.score)
-        self.label.text = '\n'.join(self.game_model.messages[-num_msg_lines:])
+        if self.game_model.mode == 'tutorial':
+            self.label.text = self.game_model.messages[-1] if self.game_model.messages else ''
+        else:
+            self.label.text = '\n'.join(self.game_model.messages[-num_msg_lines:])
 
     def resized(self, *args):
         if self.screen() != 'game':
