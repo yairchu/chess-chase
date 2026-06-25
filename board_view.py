@@ -3,7 +3,7 @@ import operator
 import random
 
 from kivy.core.window import Window
-from kivy.graphics import Color, Rectangle
+from kivy.graphics import Color, Line, Rectangle
 from kivy.uix.widget import Widget
 
 import env
@@ -37,6 +37,8 @@ class BoardView(Widget):
             Rectangle(pos=(self.x - 8, self.y - 8), size=(board_w + 16, board_h + 16))
             Color(0, 0, 0, .16)
             Rectangle(pos=self.pos, size=(board_w, board_h))
+            Color(.42, .72, .67, .55)
+            Line(rectangle=(self.x, self.y, board_w, board_h), width=1)
             for (x, y), col in cols.items():
                 sx, sy = self.screen_pos((x, y))
                 Color(*[x/255 for x in col])

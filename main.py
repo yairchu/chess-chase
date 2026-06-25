@@ -214,10 +214,11 @@ class Game(BoxLayout):
         self.menu_button = style_button(WrappedButton(
             halign='center',
             size_hint=(1, 0),
-            size_hint_min_y=46,
+            size_hint_min_y=38,
             text='Menu',
             on_press=self.show_menu))
-        self.menu_button.font_size = '20sp'
+        self.menu_button.background_color = (.06, .08, .08, .65)
+        self.menu_button.font_size = '18sp'
 
         self.score_label = WrappedLabel(
             halign='center',
