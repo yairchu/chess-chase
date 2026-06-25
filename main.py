@@ -47,6 +47,7 @@ MUTED_TEXT_COLOR = (.72, .76, .74, 1)
 BUTTON_COLOR = (.20, .22, .22, 1)
 PRIMARY_BUTTON_COLOR = (.16, .39, .36, 1)
 GOLD_COLOR = (.86, .64, .32, 1)
+PANEL_COLOR = (.03, .05, .05, .82)
 
 def style_button(button, primary=False):
     button.background_normal = ''
@@ -78,7 +79,7 @@ class RecentMovesView(Widget):
             return
 
         with self.canvas:
-            label = CoreLabel(text='Last moved', font_size=24, color=MUTED_TEXT_COLOR)
+            label = CoreLabel(text='LAST MOVED', font_size=20, color=GOLD_COLOR)
             label.refresh()
             pad = 14
             gap = 8
@@ -98,9 +99,9 @@ class RecentMovesView(Widget):
                 total = max(piece.freeze_time, self.game.player_freeze_time, 1)
                 ratio = max(0, min(1, remaining / total))
 
-                Color(.86, .89, .86, 1)
+                Color(.06, .08, .08, .9)
                 Rectangle(pos=(x - 4, y - 8), size=(icon + 8, icon + 14))
-                Color(1, 1, 1, 1)
+                Color(.92, .90, .84, 1)
                 Rectangle(texture=piece.image(), pos=(x, y), size=(icon, icon))
                 Color(.18, .55, .50, 1)
                 Rectangle(pos=(x, y - 8), size=(icon * ratio, 5))
@@ -180,6 +181,10 @@ class Game(BoxLayout):
             size_hint_min_y=500,
             padding=[28, 18, 28, 18],
             spacing=12)
+        with self.info_pane.canvas.before:
+            self.info_pane_bg_color = Color(*PANEL_COLOR)
+            self.info_pane_bg = Rectangle(pos=self.info_pane.pos, size=self.info_pane.size)
+        self.info_pane.bind(pos=self.update_info_pane_bg, size=self.update_info_pane_bg)
 
         row_args = {'size_hint': (1, 0), 'size_hint_min_y': 70}
 
@@ -209,9 +214,10 @@ class Game(BoxLayout):
         self.menu_button = style_button(WrappedButton(
             halign='center',
             size_hint=(1, 0),
-            size_hint_min_y=58,
+            size_hint_min_y=46,
             text='Menu',
             on_press=self.show_menu))
+        self.menu_button.font_size = '20sp'
 
         self.score_label = WrappedLabel(
             halign='center',
@@ -230,9 +236,11 @@ class Game(BoxLayout):
         self.text_input = TextInput(
             multiline=False,
             text_validate_unfocus=env.is_mobile,
-            background_color=(.92, .94, .92, 1),
-            foreground_color=(.06, .07, .07, 1),
-            cursor_color=(.16, .39, .36, 1),
+            background_normal='',
+            background_active='',
+            background_color=(.04, .07, .07, .96),
+            foreground_color=TEXT_COLOR,
+            cursor_color=GOLD_COLOR,
             font_size='22sp',
             padding=[14, 14, 14, 14],
             **row_args)
@@ -257,6 +265,10 @@ class Game(BoxLayout):
         self.refresh_layout()
         Clock.schedule_interval(self.on_clock, 1/30)
 
+    def update_info_pane_bg(self, *_):
+        self.info_pane_bg.pos = self.info_pane.pos
+        self.info_pane_bg.size = self.info_pane.size
+
     @mainthread
     def on_game_init(self):
         self.refresh_layout()
@@ -274,6 +286,7 @@ class Game(BoxLayout):
         screen = self.screen()
         if screen == 'game':
             self.orientation = 'horizontal' if self.size[0] > self.size[1] else 'vertical'
+        self.info_pane_bg_color.rgba = PANEL_COLOR if screen == 'game' else (0, 0, 0, 0)
 
         self.draw_background(screen)
         self.clear_widgets()
@@ -309,13 +322,14 @@ class Game(BoxLayout):
             elif screen == 'setup':
                 self.info_pane.add_widget(self.connecting_view)
             self.info_pane.add_widget(self.label)
-            self.info_pane.add_widget(self.text_input)
+            if self.game_model.mode != 'tutorial':
+                self.info_pane.add_widget(self.text_input)
+            else:
+                self.text_input.focus = False
         self.resized()
 
     def draw_background(self, screen):
         self.canvas.before.clear()
-        if screen == 'game':
-            return
         tw, th = self.background_texture.size
         scale = max(self.width / tw, self.height / th)
         width, height = tw * scale, th * scale
@@ -388,7 +402,7 @@ class Game(BoxLayout):
         self.net_engine.iter_actions = {}
 
     def update_label(self):
-        self.score_label.text = 'White: %d   Black: %d' % tuple(self.score)
+        self.score_label.text = 'SCORE\nWhite: %d   Black: %d' % tuple(self.score)
         self.label.text = '\n'.join(self.game_model.messages[-num_msg_lines:])
 
     def resized(self, *args):

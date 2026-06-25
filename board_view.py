@@ -30,7 +30,13 @@ class BoardView(Widget):
 
         self.canvas.clear()
         sq = (self.square_size-1, self.square_size-1)
+        board_w = self.square_size * self.game.board_size[0]
+        board_h = self.square_size * self.game.board_size[1]
         with self.canvas:
+            Color(.03, .04, .04, .7)
+            Rectangle(pos=(self.x - 8, self.y - 8), size=(board_w + 16, board_h + 16))
+            Color(0, 0, 0, .16)
+            Rectangle(pos=self.pos, size=(board_w, board_h))
             for (x, y), col in cols.items():
                 sx, sy = self.screen_pos((x, y))
                 Color(*[x/255 for x in col])
@@ -39,7 +45,7 @@ class BoardView(Widget):
                     piece = self.game.board[x, y]
                     if self.game.board[x, y].freeze_until > self.game.counter:
                         freeze_ratio = (piece.freeze_until - self.game.counter) / piece.freeze_time
-                        Color(.7, .7, .7)
+                        Color(.90, .73, .38, .72)
                         Rectangle(pos=(sx, sy), size=((self.square_size-1) * freeze_ratio, self.square_size-1))
 
             for pos, piece in self.game.board.items():
@@ -109,11 +115,11 @@ class BoardView(Widget):
 
         cols = {}
         for pos in see:
-            cols[pos] = (240, 240, 240)
+            cols[pos] = (214, 205, 184)
         for pos, col in movesee.items():
-            cols[pos] = [128+a*127./max(col) for a in col]
+            cols[pos] = [118+a*92./max(col) for a in col]
         for pos, col in flash.items():
-            cols[pos] = [255*x for x in col]
+            cols[pos] = [118+126*x for x in col]
 
         return cols, see
 
