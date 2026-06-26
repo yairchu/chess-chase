@@ -11,6 +11,7 @@ modes=(menu setup tutorial play demo)
 for mode in "${modes[@]}"; do
     uv run python main.py --dev-state "$mode" --window-size 1200x800 --screenshot "$out_dir/desktop-$mode.png" --exit-after 0.2
     uv run python main.py --dev-state "$mode" --window-size 603x1311 --screenshot "$out_dir/iphone17-$mode.png" --exit-after 0.2
+    uv run tools/round_iphone_screenshot.py "$out_dir/iphone17-$mode.png"
 done
 
 printf 'Wrote UI screenshots to %s\n' "$out_dir"
