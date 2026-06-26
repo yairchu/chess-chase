@@ -17,7 +17,9 @@ def rounded(path, radius=None):
     radius = radius or round(min(width, height) * IPHONE_17_CORNER_RADIUS_RATIO)
 
     mask = Image.new("L", image.size, 0)
-    ImageDraw.Draw(mask).rounded_rectangle((0, 0, width, height), radius=radius, fill=255)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        (0, 0, width, height), radius=radius, fill=255
+    )
     image.putalpha(mask)
     image.save(path)
 

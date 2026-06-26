@@ -46,7 +46,9 @@ def write_ico(pngs):
     for size in sizes:
         data = pngs[size]
         width = 0 if size == 256 else size
-        entries.append((width, width, len(data), 6 + 16 * len(sizes) + sum(len(i) for i in images)))
+        entries.append(
+            (width, width, len(data), 6 + 16 * len(sizes) + sum(len(i) for i in images))
+        )
         images.append(data)
 
     header = struct.pack("<HHH", 0, 1, len(entries))

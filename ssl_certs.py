@@ -7,5 +7,5 @@ def configure_certifi():
     except ImportError:
         return
     cafile = certifi.where()
-    os.environ.setdefault('SSL_CERT_FILE', cafile)
-    os.environ.setdefault('REQUESTS_CA_BUNDLE', cafile)
+    os.environ.setdefault("SSL_CERT_FILE", cafile)
+    os.environ.setdefault("REQUESTS_CA_BUNDLE", cafile)
