@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["pillow"]
+# ///
+
 import struct
 from pathlib import Path
 
