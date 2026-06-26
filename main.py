@@ -82,9 +82,10 @@ class RecentMovesView(Widget):
             label = CoreLabel(text='LAST MOVED', font_size=24, color=GOLD_COLOR)
             label.refresh()
             pad = 10
+            safe_left = 64 if env.is_mobile or Window.width < Window.height else 0
             gap = 8
             icon = 88
-            x = self.x + pad
+            x = self.x + pad + safe_left
             y = self.y + 18
 
             Color(*MUTED_TEXT_COLOR)
@@ -204,6 +205,7 @@ class Game(BoxLayout):
         self.menu_bottom_spacer = Widget(size_hint=(1, 1))
         self.logo_view = LogoView(self.logo_texture)
         self.connecting_view = ConnectingView()
+        self.tutorial_score_spacer = Widget(size_hint=(1, 0), size_hint_min_y=24)
 
         self.button_pane = BoxLayout(orientation='vertical', size_hint=(1, .4), spacing=12)
         self.info_pane.add_widget(self.button_pane)
@@ -335,6 +337,8 @@ class Game(BoxLayout):
             if screen == 'game':
                 if self.orientation == 'horizontal':
                     self.info_pane.add_widget(self.recent_moves_view)
+                if self.game_model.mode == 'tutorial':
+                    self.info_pane.add_widget(self.tutorial_score_spacer)
                 self.info_pane.add_widget(self.score_label)
             elif screen == 'setup':
                 self.info_pane.add_widget(self.connecting_view)
