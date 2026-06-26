@@ -31,7 +31,9 @@ from kivy.core.image import Image as CoreImage
 from kivy.core.text import Label as CoreLabel
 from kivy.core.window import Window
 from kivy.graphics import Color, Ellipse, Line, Rectangle
+from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 from kivy.uix.widget import Widget
@@ -214,7 +216,7 @@ class Game(BoxLayout):
             halign='center',
             text='Start Game' if env.is_mobile else 'Start Game: Play with friends',
             on_press=self.start_game), primary=True))
-        self.menu_button = style_button(WrappedButton(
+        self.menu_button = style_button(Button(
             halign='center',
             size_hint=(1, 0),
             size_hint_min_y=38,
@@ -223,7 +225,7 @@ class Game(BoxLayout):
         self.menu_button.background_color = (.06, .08, .08, .65)
         self.menu_button.font_size = '18sp'
 
-        self.score_label = WrappedLabel(
+        self.score_label = Label(
             halign='center',
             color=MUTED_TEXT_COLOR,
             font_size='21sp',
@@ -236,6 +238,13 @@ class Game(BoxLayout):
             color=TEXT_COLOR,
             font_size='18sp',
             size_hint=(1, None))
+        self.tutorial_label = Label(
+            halign='center',
+            valign='middle',
+            color=TEXT_COLOR,
+            font_size='21sp',
+            size_hint=(1, 1))
+        self.tutorial_label.bind(size=lambda *_: setattr(self.tutorial_label, 'text_size', self.tutorial_label.size))
         self.message_view = ScrollView(
             size_hint=(1, 1),
             do_scroll_x=False,
@@ -329,7 +338,7 @@ class Game(BoxLayout):
                 self.info_pane.add_widget(self.score_label)
             elif screen == 'setup':
                 self.info_pane.add_widget(self.connecting_view)
-            self.info_pane.add_widget(self.message_view)
+            self.info_pane.add_widget(self.tutorial_label if self.game_model.mode == 'tutorial' else self.message_view)
             if self.game_model.mode != 'tutorial':
                 self.info_pane.add_widget(self.text_input)
             else:
@@ -413,6 +422,7 @@ class Game(BoxLayout):
         self.score_label.text = 'SCORE\nWhite: %d   Black: %d' % tuple(self.score)
         if self.game_model.mode == 'tutorial':
             self.label.text = self.game_model.messages[-1] if self.game_model.messages else ''
+            self.tutorial_label.text = self.label.text
         else:
             self.label.text = '\n'.join(self.game_model.messages[-num_msg_lines:])
         self.message_view.scroll_y = 0
@@ -447,7 +457,7 @@ class Game(BoxLayout):
             self.button_pane.size_hint = (1, .4)
             self.button_pane.size_hint_min_y = 140
         else:
-            self.info_pane.size_hint = (1, p)
+            self.info_pane.size_hint = (1, .18 if self.game_model.mode == 'tutorial' else p)
             self.board_view.size_hint = (1, 1 / self.game_model.num_boards)
             self.recent_moves_view.size_hint = (1, 0)
             self.recent_moves_view.size_hint_min_y = 186

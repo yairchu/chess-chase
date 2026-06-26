@@ -15,7 +15,7 @@ class BoardView(Widget):
         super(BoardView, self).__init__(**kwargs)
         self.game = game
         Window.bind(mouse_pos=self.mouse_motion)
-        self.bind(size=self.resized)
+        self.bind(pos=self.resized, size=self.resized)
         self.mouse_pos = None
         self.reset()
 
@@ -23,6 +23,8 @@ class BoardView(Widget):
         self.square_size = min(
             self.width / self.game.board_size[0],
             self.height / (self.game.board_size[1] + self.top_margin_squares))
+        self.board_x = self.x + (self.width - self.square_size * self.game.board_size[0]) / 2
+        self.board_y = self.top - self.square_size * (self.game.board_size[1] + self.top_margin_squares)
 
     def reset(self):
         self.selected = None
@@ -45,11 +47,11 @@ class BoardView(Widget):
         board_h = self.square_size * self.game.board_size[1]
         with self.canvas:
             Color(.03, .04, .04, .7)
-            Rectangle(pos=(self.x - 8, self.y - 8), size=(board_w + 16, board_h + 16))
+            Rectangle(pos=(self.board_x - 8, self.board_y - 8), size=(board_w + 16, board_h + 16))
             Color(0, 0, 0, .16)
-            Rectangle(pos=self.pos, size=(board_w, board_h))
+            Rectangle(pos=(self.board_x, self.board_y), size=(board_w, board_h))
             Color(.42, .72, .67, .55)
-            Line(rectangle=(self.x, self.y, board_w, board_h), width=1)
+            Line(rectangle=(self.board_x, self.board_y, board_w, board_h), width=1)
             for (x, y), col in cols.items():
                 sx, sy = self.screen_pos((x, y))
                 Color(*[x/255 for x in col])
@@ -178,7 +180,7 @@ class BoardView(Widget):
         self.selected = None
 
     def calc_mouse_pos(self, pos):
-        board_pos = [int((x - sx) // self.square_size) for x, sx in zip(pos, self.pos)]
+        board_pos = [int((x - sx) // self.square_size) for x, sx in zip(pos, (self.board_x, self.board_y))]
         if (self.game.player() or 0) % 2 == 1:
             board_pos = [s-1-x for x, s in zip(board_pos, self.game.board_size)]
         self.mouse_pos = tuple(board_pos)
@@ -186,7 +188,7 @@ class BoardView(Widget):
     def screen_pos(self, pos):
         if (self.game.player() or 0) % 2 == 1:
             pos = [s-1-x for x, s in zip(pos, self.game.board_size)]
-        return tuple(sx+self.square_size*x for x, sx in zip(pos, self.pos))
+        return tuple(sx+self.square_size*x for x, sx in zip(pos, (self.board_x, self.board_y)))
 
     def can_control(self, piece):
         return self.game.mode == 'demo' or piece.player == self.game.player()
