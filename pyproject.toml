@@ -7,16 +7,15 @@ requires-python = ">=3.10"
 dependencies = [
     "certifi",
     "kivy",
+    "pillow",
     "pystun3",
 ]
 
 [project.optional-dependencies]
 build = [
-    "pillow",
     "pyinstaller",
 ]
 macos-build = [
-    "pillow",
     "pyinstaller",
 ]
 
